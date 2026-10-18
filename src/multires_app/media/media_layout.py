@@ -82,7 +82,7 @@ def page_animation_names(model):
     _,transitive=dependencies(model)
     animated={name for name,node in model.get('variables',{}).items()
               if any(model['nodes'][c]['tag']=='VariableAnimation' for c in node['children'])}
-    started=set();positions=set();predicates=set()
+    started=set();positions=set();predicates=set();interactive_positions=set()
     def refs(value):
         direct=set(REF.findall(value))
         return direct|set().union(*(transitive.get(n,set()) for n in direct))
@@ -94,8 +94,29 @@ def page_animation_names(model):
     for node in model['nodes'].values():
         if node['tag']=='Group':
             for axis in ('x','y'):positions.update(refs(node['attributes'].get(axis,'')))
+            pending=list(node['children']);has_button=False
+            while pending:
+                child=model['nodes'][pending.pop()]
+                if child['tag']=='Button':has_button=True;break
+                pending.extend(child['children'])
+            if has_button:
+                for axis in ('x','y'):interactive_positions.update(refs(node['attributes'].get(axis,'')))
         if node['tag'] in {'Button','Group'}:predicates.update(refs(node['attributes'].get('visibility','')))
-    return animated&started&positions&predicates
+    # Some native themes implement paging with a user-written start timestamp
+    # and expressions such as min((#time-#pageStart)/500,1), without an
+    # explicit VariableAnimation. Keep these Group poses at the current scene
+    # value; resetting #time to zero would put an opened drawer offscreen.
+    clocks=set()
+    for trigger in model['triggers']:
+        if model['nodes'][trigger['owner']]['tag']!='Button':continue
+        for command in trigger['commands']:
+            a=command['attributes']
+            if command['tag']=='VariableCommand' and 'time' in refs(a.get('expression','')):
+                clocks.add(a.get('name',''))
+    timed_positions={name for name in positions if name in model.get('variables',{})
+                     and 'time' in transitive.get(name,set())
+                     and transitive.get(name,set())&clocks}
+    return (animated&started&positions&predicates)|timed_positions|(animated&interactive_positions)
 
 
 def reference(runtime, assets, node_order, asset_order):
@@ -150,7 +171,16 @@ def reference(runtime, assets, node_order, asset_order):
     inactive=set()
     if pages:
         from multires_app.engine.scene_engine import REF
-        actual=rt.snapshot(assets)
+        # Waiting/offscreen is an authored source-space property. Responsive
+        # y expressions can temporarily move normal content above a short
+        # target canvas before layout; that does not make it an inactive page.
+        source_viewport=runtime.model.get('layoutSourceViewport',{
+            'width':runtime.system['screen_width'],'height':runtime.system['screen_height']})
+        source_rt=Runtime(runtime.model,source_viewport['width'],source_viewport['height'],copy.deepcopy(rt.state),time_ms=0)
+        source_rt.system=copy.deepcopy(rt.system)
+        source_rt.system.update(screen_width=source_viewport['width'],screen_height=source_viewport['height'])
+        source_rt.reference_phase=True
+        actual=source_rt.snapshot(assets)
         for group in runtime.model['nodes'].values():
             if group['tag']!='Group' or not any(set(REF.findall(group['attributes'].get(a,'')))&pages for a in ('x','y')):continue
             descendants=set();pending=list(group['children'])
@@ -158,7 +188,7 @@ def reference(runtime, assets, node_order, asset_order):
                 uid=pending.pop();descendants.add(uid);pending.extend(runtime.model['nodes'][uid]['children'])
             boxes=[e['rect'] for e in actual if e['id'] in descendants and e['visible'] and e['tag'] not in {'Group','Button'} and e['rect']['w']>0 and e['rect']['h']>0]
             if not boxes:continue
-            w=runtime.system['screen_width'];h=runtime.system['screen_height']
+            w=source_viewport['width'];h=source_viewport['height']
             outside=(min(b['x'] for b in boxes)>=w or max(b['x']+b['w'] for b in boxes)<=0 or
                      min(b['y'] for b in boxes)>=h or max(b['y']+b['h'] for b in boxes)<=0)
             if outside:inactive.update(ni[uid] for uid in descendants if uid in ni)

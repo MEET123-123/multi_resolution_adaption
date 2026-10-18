@@ -65,7 +65,22 @@ async function startLive(){
  }catch(e){if(generation===sessionGeneration)$('status').textContent=e.message;}finally{if(generation===sessionGeneration)busy=false;}
 }
 function move(edge){if(!edge?.to){$('status').textContent='该操作尚未探索；实时服务可执行新的操作。';return;}history.push(stateId);stateId=edge.to;frames=[];sourceLive=null;frameIndex=-1;log.unshift(edge.action+' → '+stateId);draw();}
-async function executeHuman(owner,kind,gesture,sample,durationMs=0,surface='target'){if(busy)return;$('aestheticBefore').checked=false;stopFrames();if(live){busy=true;try{acceptLive(await api('gesture',{session:liveSession,action:{owner,kind,gesture,sample,durationMs,surface}}));}catch(e){$('status').textContent=e.message;}finally{busy=false;}return;}const edges=DATA.transitions.filter(e=>e.from===stateId&&e.owner===owner&&e.action===kind);let best=null,distance=Infinity;for(const e of edges)for(const witness of e.witnesses||[{sample:e.sample}]){const value=Math.hypot(...witness.sample.map((v,i)=>v-sample[i]));if(value<distance){distance=value;best=e;}}move(best);}
+function chooseSampledTransition(transitions,from,owner,kind,gesture,sample){
+ let best=null,distance=Infinity;
+ for(const edge of transitions){
+  if(edge.from!==from||edge.owner!==owner||edge.action!==kind)continue;
+  for(const witness of edge.witnesses?.length?edge.witnesses:[{sample:edge.sample,gesture:edge.gesture}]){
+   // A bounded static graph must not substitute a right-swipe return for an
+   // unexplored left/up gesture simply because it is the only sampled edge.
+   if(kind==='swipe'&&(witness.gesture||edge.gesture)!==gesture)continue;
+   if(!Array.isArray(witness.sample)||witness.sample.length!==sample.length)continue;
+   const value=Math.hypot(...witness.sample.map((v,i)=>v-sample[i]));
+   if(value<distance){distance=value;best=edge;}
+  }
+ }
+ return best;
+}
+async function executeHuman(owner,kind,gesture,sample,durationMs=0,surface='target'){if(busy)return;$('aestheticBefore').checked=false;stopFrames();if(live){busy=true;try{acceptLive(await api('gesture',{session:liveSession,action:{owner,kind,gesture,sample,durationMs,surface}}));}catch(e){$('status').textContent=e.message;}finally{busy=false;}return;}move(chooseSampledTransition(DATA.transitions,stateId,owner,kind,gesture,sample));}
 function gestureCapture(c,gesture){
  if(DATA.pointerPolicy==='strict-z-order'||gesture==='center')return c;
  const area=viewport(c.surface).width*viewport(c.surface).height,axis=['left','right'].includes(gesture)?'x':'y';

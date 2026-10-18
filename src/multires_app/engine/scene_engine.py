@@ -180,6 +180,9 @@ class Runtime:
         self.model=model;self.state=dict(state or {});self.cache={};self.stack=set();self.issues={};self.events=[]
         self.command_log=None  # Opt-in ordered command trace; exploration pays no snapshot cost.
         self.time_ms=time_ms
+        from multires_app.engine.coordinate_space import source_canvas
+        canvas=source_canvas(model)
+        if canvas is not None:width,height=canvas['width'],canvas['height']
         self.system={"screen_width":width,"screen_height":height,"time":time_ms,
                      "hour":9,"hour24":9,"minute":41,"second":0,"year":2026,"month":10,"date":13,
                      "day_of_week":3,"battery_level":80,"battery_state":0,
@@ -187,6 +190,7 @@ class Runtime:
                      "media_title":"音乐标题","media_subtitle":"歌手","ownerinfo":"主题场景预览",
                      "call_missed_count":0,"sms_unread_count":0}
         self.system.update(model.get("inputs",{}).get("system",{}))
+        if canvas is not None:self.system.update(screen_width=width,screen_height=height)
         self.evaluator=Evaluator(self.lookup)
 
     def issue(self, key, reason): self.issues[str(key)]=str(reason)

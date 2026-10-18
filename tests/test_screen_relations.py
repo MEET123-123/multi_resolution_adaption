@@ -19,6 +19,82 @@ class ScreenRelationsTests(unittest.TestCase):
         self.assertAlmostEqual(boxes['right']['x']+boxes['right']['w'],1600)
         self.assertAlmostEqual(boxes['bottom']['y']+boxes['bottom']['h'],1000)
 
+    def test_slight_crop_and_vertical_overflow_keep_horizontal_edges(self):
+        comps=[comp('left',(-17,-20,578,400)),comp('right',(506,1000,578,400))]
+        boxes,context=self.layout(comps)
+        self.assertAlmostEqual(boxes['left']['x'],0)
+        self.assertAlmostEqual(boxes['right']['x']+boxes['right']['w'],1600)
+        edges=context['adaptationPlan']['horizontalEdgeAttachments']
+        self.assertEqual(edges['left']['priority'],'required')
+        self.assertEqual(edges['right']['edge'],'right')
+
+    def test_large_one_sided_header_and_special_art_keep_edges(self):
+        comps=[comp('wide',(116,100,970,349),role='header'),
+               comp('art',(0,1300,300,400),role='decoration')]
+        boxes,context=self.layout(comps)
+        self.assertAlmostEqual(boxes['wide']['x']+boxes['wide']['w'],1600)
+        self.assertAlmostEqual(boxes['art']['x'],0)
+
+    def test_half_hidden_radial_menu_keeps_crop_at_right_edge(self):
+        c=comp('drawer',(516,550,1060,1020))
+        boxes,context=self.layout([c])
+        b=boxes['drawer'];scale=b['w']/1060
+        self.assertAlmostEqual(b['x'],1600-(1080-516)*scale)
+        self.assertAlmostEqual(b['x']+b['w']-1600,(1576-1080)*scale)
+        self.assertEqual(context['adaptationPlan']['horizontalEdgeAttachments']['drawer']['marginScale'],'resource')
+
+    def test_left_crop_and_clipped_stable_resources_do_not_reveal_waiting_art(self):
+        c=comp('drawer',(-420,550,900,800))
+        boxes,_=self.layout([c],stableResources=[{'component':'drawer','id':'image','rect':{'x':0,'y':550,'w':480,'h':800}}])
+        b=boxes['drawer'];self.assertAlmostEqual(b['x'],-420*b['w']/900)
+
+    def test_containment_constrains_visible_portion_not_entire_asset(self):
+        from multires_app.layout.canvas_bounds import stable_resources
+        p={'sourceDevice':{'viewport':{'width':1080,'height':2400}},'components':[{'id':'c','role':'content'}],
+           'nodeOrder':['image'],'nodeComponents':{'image':'c'},'model':{'nodes':{'image':{'tag':'Image'}}}}
+        source={'rows':[[0,516,500,1060,1000,1]]}
+        target={'rows':[[0,516,50,1060,1000,1]]}
+        self.assertEqual(stable_resources(p,target,source)[0]['rect'],{'x':516,'y':50,'w':564,'h':1000})
+
+    def test_interior_uses_existing_anchor_and_waiting_page_is_not_snapped(self):
+        from multires_app.layout.screen_relations import horizontal_attachment
+        for box in [(80,800,200,200),(1080,800,200,200),(0,-400,200,100),(0,0,1080,400)]:
+            self.assertFalse(horizontal_attachment(dict(zip(('x','y','w','h'),box)),{'width':1080,'height':2400}))
+        c=comp('interior',(350,800,200,200));boxes,context=self.layout([c])
+        self.assertFalse(context['adaptationPlan']['horizontalEdgeAttachments'])
+        self.assertAlmostEqual(boxes['interior']['x']+boxes['interior']['w']/2,450/1080*1600)
+
+    def test_edge_atoms_are_not_merged_into_an_interior_container(self):
+        comps=[comp('edge',(0,800,100,100)),comp('peer',(110,800,100,100))]
+        ir=build_ir(comps,{'width':1080,'height':2400},ctx(),{})
+        root=next(g for g in ir['groups'] if 'edge' in g['members'])
+        self.assertEqual(root['members'],['edge'])
+
+    def test_export_guard_detects_later_edge_drift(self):
+        from multires_app.layout.screen_relations import horizontal_attachment_errors
+        comps=[{**comp('left',(0,800,100,100)),'name':'left'}];context=ctx(1600,1000)
+        transforms=AnchorThemeLayout().layout_scene(comps,SOURCE,{'resolutionPx':{'width':2560,'height':1600}},context)
+        project={'model':{'nodes':{'img':{'tag':'Image','attributes':{},'children':[],'parent':None}},'variables':{}},
+                 'components':comps,'nodeOrder':['img'],'nodeComponents':{'img':'left'}}
+        layout={'state':'s','rows':[[0,0,800,100,100,1,-1,'',0]],'transforms':transforms,'adaptationPlan':context['adaptationPlan']}
+        device={'viewport':{'width':1600,'height':1000},'layouts':[layout]}
+        self.assertFalse(horizontal_attachment_errors(project,device,layout))
+        transforms['left']['tx']+=25
+        self.assertEqual(horizontal_attachment_errors(project,device,layout)[0]['actualMargin'],25)
+
+    def test_missing_cached_edge_intent_does_not_disable_validation(self):
+        from multires_app.layout.screen_relations import horizontal_attachment_errors
+        row=[0,0,800,100,100,1,-1,'',0]
+        project={'model':{'inputs':{'interaction':{'coordinateSpace':'source'}},
+                         'layoutSourceViewport':{'width':1080,'height':2400},
+                         'nodes':{'img':{'tag':'Image','attributes':{},'children':[],'parent':None}},'variables':{}},
+                 'components':[{**comp('left',(0,800,100,100)),'name':'left'}],
+                 'nodeOrder':['img'],'nodeComponents':{'img':'left'},
+                 'sourceDevice':{'viewport':{'width':1080,'height':2400},'layouts':[{'state':'s','rows':[row]}]}}
+        layout={'state':'s','rows':[row],'transforms':{'left':{'sx':1,'sy':1,'tx':100,'ty':-500}}}
+        device={'viewport':{'width':1600,'height':1000},'layouts':[layout]}
+        self.assertEqual(horizontal_attachment_errors(project,device,layout)[0]['actualMargin'],100)
+
     def test_equal_cell_footer_expands_with_viewport(self):
         comps=[comp(str(i),(180+i*360-40,2280,80,80),role='footer') for i in range(3)]
         boxes,context=self.layout(comps)

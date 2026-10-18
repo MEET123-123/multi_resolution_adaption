@@ -19,10 +19,10 @@ def font(size):
     return ImageFont.truetype(str(FONT),max(6,int(size)))
 
 
-def draw_layout(project,directory,layout,viewport,output_size):
+def draw_layout(project,directory,layout,viewport,output_size,background=None):
     scale=min(output_size[0]/viewport['width'],output_size[1]/viewport['height'])
     size=(round(viewport['width']*scale),round(viewport['height']*scale))
-    canvas=Image.new('RGBA',size,'#14212b')
+    canvas=background.convert('RGBA').resize(size,Image.Resampling.LANCZOS) if background is not None else Image.new('RGBA',size,'#14212b')
     for row in layout['rows']:
         index,x,y,w,h,alpha,asset_index,text,text_size=row[:9]
         uid=project['nodeOrder'][index];node=project['model']['nodes'][uid]

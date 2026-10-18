@@ -53,7 +53,7 @@ class Evaluator:
         self.hit_pairs={}
         for l in device['layouts']:
             buttons=[{**e,'originalBox':transformed_box(e['rect'],l['transforms'][e['component']])} for e in self.resources[l['state']]
-                     if project['model']['nodes'][e['id']]['tag']=='Button']
+                     if project['model']['nodes'][e['id']]['tag']=='Button' and e['component'] in l['transforms']]
             self.hit_pairs[l['state']]=[(a,b) for i,a in enumerate(buttons) for b in buttons[:i]
                                        if intersection(a['originalBox'],b['originalBox'])<1e-6]
 
@@ -250,6 +250,9 @@ def project_candidate(evaluator,members,dx,dy,k,glyphs):
             ids,b=resolve(gid)
             if not b or not ids<=members:continue
             positions={axis:(b[axis] if intent['edge'] in {'left','top'} else b[axis]+b['w' if axis=='x' else 'h']) for axis,intent in g.get('screenAttachment',{}).items()}
+            if 'x' in positions and g.get('horizontalLocalBounds'):
+                frame=g['horizontalLocalBounds'];s=mapping[next(iter(ids))]['sx'];intent=g['screenAttachment']['x']
+                positions['x']=b['x']+(frame['x']+(0 if intent['edge']=='left' else frame['w']))*s
             if g.get('cornerLocalBounds'):
                 frame=g['cornerLocalBounds'];s=mapping[next(iter(ids))]['sx']
                 positions={axis:b[axis]+(frame[axis]+(0 if intent['edge'] in {'left','top'} else frame['w' if axis=='x' else 'h']))*s for axis,intent in g.get('screenAttachment',{}).items()}

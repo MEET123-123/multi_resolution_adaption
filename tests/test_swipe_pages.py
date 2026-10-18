@@ -55,6 +55,43 @@ class SwipePageTests(unittest.TestCase):
         perform_action(rt,self.action('dismiss','swipe',[.1,.5,.9,.5]),{})
         self.assertEqual(rt.lookup('guide'),1)
 
+    def test_required_journey_precedes_exploration_budget_and_is_hit_tested(self):
+        actions=[self.action('dismiss'),self.action('next','swipe',[.1,.5,.9,.5]),
+                 self.action('previous','swipe',[.9,.5,.1,.5])]
+        self.model['inputs']={'interaction':{'maxExplorationGestures':1,
+            'requiredTraces':[{'name':'open-return','actions':actions}]}}
+        graph=explore_human(self.model,{'resolutionPx':{'width':1080,'height':2400}},{},4,1)
+        self.assertEqual(len(graph['states']),3)
+        edges=[e for e in graph['transitions'] if e.get('requiredJourney')]
+        self.assertEqual(len(edges),3)
+        self.assertEqual(edges[-1]['to'],edges[0]['to'])
+        self.assertTrue(graph['coverage']['requiredJourneys'][0]['passed'])
+        actions[0]=self.action('next','swipe',[.1,.5,.9,.5])
+        with self.assertRaisesRegex(ValueError,'button-not-visible'):
+            explore_human(self.model,{'resolutionPx':{'width':1080,'height':2400}},{},4,1)
+
+    def test_timestamp_page_pose_survives_media_first_frame_reference(self):
+        from multires_app.media.media_layout import reference,page_animation_names
+        from multires_app.engine.scene_engine import VISUAL
+        xml='''<Lockscreen screenWidth="1080">
+        <Var name="phase" expression="min(max(#time-#started,0),500)/500"/>
+        <Var name="offset" expression="ifelse(eq(#page,1),1080-1080*#phase,1080*#phase)"/>
+        <Group x="#offset"><Rectangle x="10" y="10" w="100" h="100"/></Group>
+        <Button x="0" y="200" w="1080" h="200"><Trigger action="up">
+        <VariableCommand name="started" expression="#time"/>
+        <VariableCommand name="page" expression="1"/>
+        </Trigger></Button></Lockscreen>'''
+        (Path(self.tmp.name)/'unlock/lockscreen/manifest.xml').write_text(xml,encoding='utf-8')
+        model=load_model(Path(self.tmp.name));rt=initialize(model,1080,2400)
+        owner=next(n['id'] for n in model['nodes'].values() if n['tag']=='Button')
+        perform_action(rt,{'owner':owner,'kind':'tap','sample':[.5]*4},{})
+        self.assertEqual(rt.lookup('offset'),0)
+        self.assertIn('offset',page_animation_names(model))
+        order=[uid for uid,n in model['nodes'].items() if n['tag'] in VISUAL]
+        ref=reference(rt,{},order,[])
+        self.assertEqual(ref['rows'][0][1],10)
+        self.assertFalse(ref.get('inactiveSceneNodeIndices'))
+
     def test_explorer_follows_guide_page_and_return_with_real_gestures(self):
         graph=explore_human(self.model,{'resolutionPx':{'width':1080,'height':2400}},{},16,5)
         self.assertEqual(len(graph['states']),3)

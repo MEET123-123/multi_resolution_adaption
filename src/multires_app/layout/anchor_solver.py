@@ -85,15 +85,21 @@ def solve(ir, local, region, desired, frozen=None, constraints=None, min_scale=.
         for axis,intent in g.get('screenAttachment',{}).items():
             if gid in rail_roots:continue
             size='w' if axis=='x' else 'h'
-            margin=intent.get('targetMargin',intent['margin']*s)
+            from multires_app.layout.screen_relations import attachment_margin
+            margin=attachment_margin(intent,s)
             expr=(b[axis]-region[axis]-margin if intent['edge'] in {'left','top'} else
                   b[axis]+b[size]-region[axis]-region[size]+margin)
+            if axis=='x' and g.get('_horizontal_bounds'):
+                frame=g['_horizontal_bounds'];start=b['x']+frame['x']*s;end=start+frame['w']*s
+                expr=start-region['x']-margin if intent['edge']=='left' else end-region['x']-region['w']+margin
             if g.get('_corner_bounds'):
                 frame=g['_corner_bounds'];start=b[axis]+frame[axis]*s;end=start+frame[size]*s
                 expr=(start-region[axis]-margin if intent['edge'] in {'left','top'} else end-region[axis]-region[size]+margin)
-            if intent.get('priority')=='required':
-                add(expr>=-.005,gid+':corner-'+intent['edge']+':lower',provenance='independent corner shortcut attachment')
-                add(expr<=.005,gid+':corner-'+intent['edge']+':upper',provenance='independent corner shortcut attachment')
+            if intent.get('priority')=='required' and not any(cid in frozen for cid in local[gid]['leaves']):
+                if g.get('cornerAttachment'):
+                    add(expr>=-.005,gid+':corner-'+intent['edge']+':lower',provenance='independent corner shortcut attachment')
+                    add(expr<=.005,gid+':corner-'+intent['edge']+':upper',provenance='independent corner shortcut attachment')
+                else:add(expr==0,gid+':edge-'+intent['edge'],provenance='preserve authored horizontal screen attachment')
             add(expr==0,gid+':screen-'+intent['edge'],'strong',100,'source screen edge attachment')
         for axis in g.get('centerAxes',[]):
             if gid in rail_roots:continue

@@ -131,6 +131,26 @@ def infer_components(model, source_profile, assets, initial_state, overrides=Non
     compositions=find_compositions(elements,assets,resolution)
     model['compositionBindings']=compositions
     components=attach_compositions(components,compositions,nodes)
+    # Shrinking a parent must not pull its waiting page onto the viewport.
+    # Preserve each observed sliding subtree as an independent layout root.
+    from multires_app.media.media_layout import page_animation_names
+    from multires_app.engine.scene_engine import REF
+    pages=page_animation_names(model)
+    for uid,node in nodes.items():
+        if node['tag']!='Group' or animated_ancestor(uid):continue
+        if not any(set(REF.findall(node['attributes'].get(axis,'')))&pages for axis in ('x','y')):continue
+        poses=[]
+        for sample in samples:
+            visible=[e['rect'] for e in sample if e['id'].startswith(uid+'/') and e['visible'] and e['tag'] not in {'Button','Group'}]
+            if not visible:continue
+            b=union(visible)
+            poses.append((b,b['x']>=resolution['width'] or b['x']+b['w']<=0 or b['y']>=resolution['height'] or b['y']+b['h']<=0))
+        if not any(outside for _,outside in poses) or not any(not outside for _,outside in poses):continue
+        for c in components:c['roots']=[root for root in c['roots'] if root!=uid and not root.startswith(uid+'/')]
+        components=[c for c in components if c['roots']]
+        components.append({'id':uid,'name':'Authored sliding page','roots':[uid],'members':[],
+            'role':'content','sourceBounds':next(b for b,outside in poses if not outside),
+            'slidingPage':True,'inference':'observed source page enters and leaves viewport; preserve subtree'})
     root_owners={root:c["id"] for c in components for root in c["roots"]}
     for c in components:c["members"]=[]
     component_index={c["id"]:c for c in components}
@@ -256,6 +276,7 @@ def create_project(source, source_profile, profiles, out, algorithm_spec="anchor
         archive_validation=validate_archive(source)
     out.mkdir(parents=True,exist_ok=True)
     model=load_model(source,lockscreen_file)
+    model['layoutSourceViewport']=source_canvas_profile(model,source_profile)['resolutionPx']
     if inputs_file:model["inputs"]=json.loads(inputs_file.read_text(encoding="utf-8"))
     if component_file:
         configuration=json.loads(component_file.read_text(encoding='utf-8'))
@@ -668,7 +689,12 @@ def export_script(project, target, out):
     for uid,src in resources['remaps'].items():
         if uid in xml_nodes:xml_nodes[uid].set('src',src);approved_remaps[id(xml_nodes[uid])]=src
     intrinsic_warnings.extend(resources['warnings'])
-    patched,writeback=patch_script(data,original_nodes,root,approved_remaps)
+    from multires_app.engine.coordinate_space import adapt_xml_inputs
+    coordinate_space=adapt_xml_inputs(root,model)
+    patched,writeback=patch_script(data,original_nodes,root,approved_remaps,coordinate_space)
+    from multires_app.export.interaction_preservation import audit_preservation
+    preservation=audit_preservation(data,patched,writeback)
+    writeback['interactionPreservation']=preservation
     out.write_bytes(patched)
     out.with_suffix('.patch.json').write_text(json.dumps(writeback,ensure_ascii=False,indent=2),encoding='utf-8')
     ET.parse(out)
@@ -677,6 +703,7 @@ def export_script(project, target, out):
             "resourceScaling":{'generatedFiles':len(resources['files']),'remappedNodes':len(resources['remaps']),'warnings':resources['warnings']},
             "writebackValidation":{k:v for k,v in writeback.items() if k!='changes'},
             "anchorValidation":anchor_validation,
+            "interactionPreservation":preservation,
             "note":"保留原命令/条件/动画，组件变换按状态编译为表达式；需主题引擎实测。"}
 
 

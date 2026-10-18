@@ -10,12 +10,29 @@ def validate_export(project,device):
     source_layouts={l['state']:l for l in project.get('sourceDevice',{}).get('layouts',[])}
     constraints=device['profile'].get('adaptation',{}).get('anchorLayout',{}).get('constraints',[])
     for layout in device['layouts']:
+        from multires_app.layout.scene_membership import scene_membership_errors
+        membership=scene_membership_errors(project,device,layout)
+        if membership:raise RequiredConstraintError('Scene membership changed before export: '+str(membership[:5])+'; state='+layout['state'])
         plan=layout.get('adaptationPlan',{})
         if plan.get('policy')!='nine-grid-anchor-kiwi':continue
+        from multires_app.layout.visual_scaling import resource_scale
+        from multires_app.layout.adaptive_layout import safe_region
+        options={**project.get('sourceProfile',{}).get('adaptation',{}).get('anchorLayout',{}),
+                 **device['profile'].get('adaptation',{}).get('anchorLayout',{})}
+        if options.get('minContainFraction',0)>0:
+            region=safe_region(project['sourceProfile'],device['profile'],{'logicalViewport':device['viewport']})
+            floor=resource_scale(project['sourceDevice']['viewport'],region,options,device['profile'])['minScale']
+            roles={c['id']:c['role'] for c in project['components']}
+            for cid,t in layout['transforms'].items():
+                if roles.get(cid) not in {'background','gesture-layer','interaction-layer'} and min(t['sx'],t['sy'])<floor-1e-6:
+                    raise RequiredConstraintError('source element became too small to correspond: '+cid+'; state='+layout['state'])
         for cid,scale in device.get('sharedResourceScales',{}).items():
             if cid in layout['transforms'] and any(abs(layout['transforms'][cid][axis]-scale)>1e-7 for axis in ('sx','sy')):
                 raise RequiredConstraintError('shared panel/clock resource scale drift: '+cid)
         if not plan.get('validation',{}).get('required_ok'):raise RequiredConstraintError('unvalidated anchor layout: '+layout['state'])
+        from multires_app.layout.screen_relations import horizontal_attachment_errors
+        edges=horizontal_attachment_errors(project,device,layout)
+        if edges:raise RequiredConstraintError('source horizontal edge attachment changed before export: '+str(edges[:1])+'; state='+layout['state'])
         from multires_app.layout.offscreen_geometry import waiting_errors
         waiting=waiting_errors(project,device,layout)
         if waiting:raise RequiredConstraintError('waiting artwork entered canvas before its interaction: '+str(waiting[:1]))

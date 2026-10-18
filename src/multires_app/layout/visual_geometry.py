@@ -10,6 +10,20 @@ _GEOMETRY_CACHE=OrderedDict()
 _CACHE_OWNER=None
 
 
+def component_frame_bounds(project,layout):
+    """Authored bitmap/control frames at the sampled pose, without alpha trim.
+
+    Edge intent follows the settled source frame, not an animation's canonical
+    first-frame canvas, which can be translated relative to the visible pose.
+    """
+    followers={uid for c in project['components'] for uid in c.get('layoutFollowers',[])};groups={}
+    for row in layout.get('rows',[]):
+        uid=project['nodeOrder'][row[0]];node=project['model']['nodes'][uid];cid=project['nodeComponents'].get(uid)
+        if not cid or node['tag'] in {'Group','Button'} or uid in followers or row[5]<=0 or min(row[3:5])<=0:continue
+        groups.setdefault(cid,[]).append(dict(zip(('x','y','w','h'),row[1:5])))
+    return {cid:box_union(boxes) for cid,boxes in groups.items()}
+
+
 def ensure_visual_bounds(project):
     if project.get('_visualBoundsReady'):return
     indices=set()

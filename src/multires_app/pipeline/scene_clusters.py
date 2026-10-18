@@ -261,6 +261,9 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
     source_descriptions={sid:describe_layout(project,layout) for sid,layout in reference_layouts.items()}
     source_visuals={sid:component_visuals(project,l) for sid,l in reference_layouts.items()}
     target_visuals={sid:component_visuals(project,l) for sid,l in layouts.items()}
+    from multires_app.layout.visual_geometry import component_frame_bounds
+    source_frames={sid:component_frame_bounds(project,l) for sid,l in reference_layouts.items()}
+    target_frames={sid:component_frame_bounds(project,l) for sid,l in layouts.items()}
     from multires_app.layout.visual_geometry import background_rects
     source_backgrounds={sid:background_rects(project,l) for sid,l in reference_layouts.items()}
     target_backgrounds={sid:background_rects(project,l) for sid,l in layouts.items()}
@@ -414,6 +417,12 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
         if native_families.get(sid) in forced_full and family_base==sid:
             request['kind']='full-reflow';request['fixedComponents']=[];request['affectedComponents']=sorted(current)
             request['evidence'].append('complete native family requires shared full reflow to fit all sampled phases')
+        # Family-wide requests can mention a page that is now offscreen.
+        # Inactive pages must retain native positions, not be solved or frozen
+        # using a visible sibling state's descriptor.
+        for field in ('fixedComponents','affectedComponents'):
+            request[field]=[cid for cid in request[field] if cid in current]
+        request['correspondence']={cid:other for cid,other in request.get('correspondence',{}).items() if cid in current}
         base_layout=layouts.get(request["baseState"]);base_desc=analysis["descriptions"].get(request["baseState"],{})
         base_transforms=base_layout.get("transforms",{}) if base_layout else {}
         context={"model":project["model"],"logicalViewport":device["viewport"],"layoutRequest":request,
@@ -424,6 +433,7 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
                  "sharedResourceScales":device.get('sharedResourceScales',{}),
                  "sourceStableVisualBounds":source_visuals.get(sid,{}),
                  "stableVisualBounds":target_visuals.get(sid,{}),
+                 "sourceFrameBounds":source_frames.get(sid,{}),"frameBounds":target_frames.get(sid,{}),
                  "sourceBackgroundBounds":source_backgrounds.get(sid,{}),"backgroundBounds":target_backgrounds.get(sid,{}),
                  "flowSamples":native_flow_samples.get(native_families.get(sid),[(source_visuals.get(sid,{}),target_visuals.get(sid,{}))]),
                  "stableResources":stable_by_state[sid],

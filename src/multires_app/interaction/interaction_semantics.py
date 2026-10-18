@@ -244,6 +244,28 @@ def explore_human(model, source_profile, assets, max_states=96, max_depth=6):
                "behaviorValues":behavior,"mergedWitnessCount":0,"signatureHash":hashlib.sha1(signature.encode()).hexdigest()[:16]}
         states.append(state);queue.append(state);return sid,True
     admit(initial,0,[],"初始 / 完整操作前")
+    # Reserve important authored journeys before broad exploration fills the
+    # state budget. These are real hit-tested gestures, never variable patches.
+    required_results=[]
+    for journey in model.get('inputs',{}).get('interaction',{}).get('requiredTraces',[]):
+        current=initialize(model,r['width'],r['height']);sid=states[0]['id'];trace=[]
+        for step,raw in enumerate(journey['actions'],1):
+            action={**raw,'gesture':raw.get('gesture',raw['kind']),'intent':raw.get('intent','required-journey')}
+            before=copy.deepcopy(current.state)
+            outcome=perform_action(current,action,assets)
+            if not outcome['valid']:raise ValueError(f"required journey {journey['name']} step {step}: {outcome['reason']}")
+            trace=trace+[{'humanAction':action}]
+            target,_=admit(current,step,trace,journey['name']+' / '+str(step))
+            if target is None:raise ValueError('max_states is too small for required journeys')
+            transitions.append({'from':sid,'to':target,'trigger':outcome['executed'][-1],
+                'triggers':list(dict.fromkeys(outcome['executed'])),'owner':action['owner'],
+                'action':action['kind'],'gesture':action['gesture'],'sample':action['sample'],
+                'intent':action['intent'],'timeline':outcome['timeline'],'events':copy.deepcopy(current.events),
+                'changes':{k:v for k,v in current.state.items() if k!='__animations' and before.get(k)!=v},
+                'bounded':False,'witnesses':[{'gesture':action['gesture'],'sample':action['sample']}],
+                'noVisualChange':sid==target,'requiredJourney':journey['name']})
+            sid=target
+        required_results.append({'name':journey['name'],'steps':len(trace),'finalState':sid,'passed':True})
     while queue:
         state=queue.popleft()
         current=replay_human_state(model,r["width"],r["height"],state,assets,cache=replay_cache)
@@ -280,6 +302,7 @@ def explore_human(model, source_profile, assets, max_states=96, max_depth=6):
     flat=[{**e,"trigger":trigger} for e in transitions for trigger in e["triggers"]]
     coverage=coverage_report(model,flat,max_states,max_depth,budget_exceeded or any(e["bounded"] for e in transitions))
     coverage.update(maxGestureSamples=max_gestures,attemptedGestureSamples=attempted,gestureBudgetExceeded=budget_exceeded,
+                    requiredJourneys=required_results,
                     unexpandedStates=([state['id']] if budget_exceeded else [])+[s['id'] for s in queue])
     coverage.update(boundedTransitions=sum(e["bounded"] for e in transitions),humanActions=len(transitions),
                     coordinateWitnesses=sum(len(e["witnesses"]) for e in transitions),rejectedGestures=dict(rejected),

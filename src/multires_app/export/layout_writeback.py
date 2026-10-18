@@ -9,13 +9,15 @@ ATTR=re.compile(r'([\w:.-]+)(\s*=\s*)([\"\'])([\s\S]*?)\3')
 GEOMETRY={'x','y','w','h','width','height','size','space'}
 
 
-def patch_script(data,original_nodes,root,resource_remaps=None):
+def patch_script(data,original_nodes,root,resource_remaps=None,coordinate_space=None):
     """Original nodes are (Element reference, original attributes, original children).
 
     Native scripts require existing gesture-coordinate expressions to be remapped
     as well as geometry. These approved changes are reported separately, never
     treated as arbitrary command edits.
     """
+    from multires_app.engine.coordinate_space import replace_references,EXPRESSION_FIELDS
+    reverse={v:k for k,v in (coordinate_space or {}).get('aliases',{}).items()}
     old_ids={id(n) for n,_,_ in original_nodes};old_attributes={id(n):a for n,a,_ in original_nodes};changes=[];insertions={}
     for node,attrs,children in original_nodes:
         current_original=[c for c in node if id(c) in old_ids]
@@ -24,14 +26,15 @@ def patch_script(data,original_nodes,root,resource_remaps=None):
         for key,value in node.attrib.items():
             if attrs.get(key)==value:continue
             resource_change=key=='src' and (resource_remaps or {}).get(id(node))==value and value.startswith('_multires/')
-            allowed=key in GEOMETRY or resource_change
+            canvas_change=key in EXPRESSION_FIELDS and value!=attrs.get(key) and replace_references(value,reverse)==attrs.get(key)
+            allowed=key in GEOMETRY or resource_change or canvas_change
             if key in {'expression','condition'}:
                 # Only original touch expressions may be remapped; variable names,
                 # resource references and ordinary business conditions stay intact.
-                allowed=bool(re.search(r'#touch_(?:begin_)?[xy]\b',attrs.get(key,''))) and '#mr_' in value
+                allowed=canvas_change or bool(re.search(r'#touch_(?:begin_)?[xy]\b',attrs.get(key,''))) and '#mr_' in value
             if not allowed:raise ValueError('writeback field is not approved: '+str(node.tag)+'.'+key)
             changes.append({'tag':node.tag,'attribute':key,'old':attrs.get(key),'new':value,
-                            'kind':'resource-family-scale' if resource_change else 'geometry' if key in GEOMETRY else 'gesture-coordinate-remap'})
+                            'kind':'resource-family-scale' if resource_change else 'geometry' if key in GEOMETRY else 'source-canvas-input-remap' if canvas_change else 'gesture-coordinate-remap'})
         added=[c for c in node if id(c) not in old_ids]
         if added:
             for child in added:
@@ -72,6 +75,6 @@ def patch_script(data,original_nodes,root,resource_remaps=None):
     if signature(parsed)!=signature(root):raise ValueError('lexical writeback does not match approved XML')
     return output,{'passed':True,'sourceTextPreservedOutsidePatches':True,'originalNodes':len(nodes),
                    'changedAttributes':len(changes),'generatedParameters':sum(len(list(n))-len(children) for n,_,children in original_nodes),
-                   'allowedGeometryFields':sorted(GEOMETRY),'approvedSystemChanges':'mr_ layout/state parameters and inverse gesture coordinate captures',
+                   'allowedGeometryFields':sorted(GEOMETRY),'approvedSystemChanges':'mr_ layout/state parameters, explicit source-canvas dimension aliases, and inverse gesture coordinate captures',
                    'assetReferencesPreserved':not bool(resource_remaps),'approvedResourceFamilyRemaps':len(resource_remaps or {}),
-                   'originalNodeOrderPreserved':True,'changes':changes}
+                   'originalNodeOrderPreserved':True,'coordinateSpace':coordinate_space or {'policy':'target'},'changes':changes}

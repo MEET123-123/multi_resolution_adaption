@@ -112,6 +112,8 @@ def build_ir(components, viewport, context, options):
         elements.append({'id': c['id'], 'bbox': b, 'current_bbox': dict(c['bounds']), 'role': c['role'],
                          'source_visual_bbox':context.get('sourceStableVisualBounds',{}).get(c['id'],refs.get(c['id'],{}).get('visualBounds',b)),
                          'current_visual_bbox':context.get('stableVisualBounds',{}).get(c['id'],refs.get(c['id'],{}).get('visualBounds',c['bounds'])),
+                         'source_edge_bbox':context.get('sourceFrameBounds',{}).get(c['id'],b),
+                         'current_edge_bbox':context.get('frameBounds',{}).get(c['id'],c['bounds']),
                          'coordinate_space': 'source_screen', 'layout': c.get('layout', {}),
                          'source_ref': c.get('roots', [c['id']]), 'z_order': min((z_indices[n] for n in c.get('roots', []) if n in nodes), default=0),
                          'asset_refs': [e.get('asset', '') for e in c.get('elements', [])],
@@ -126,7 +128,15 @@ def build_ir(components, viewport, context, options):
                          'atomic': True, 'special': c['role'] in special})
     by_id = {e['id']: e for e in elements}; ordinary = [e for e in elements if not e['special']]
     ungrouped=set(options.get('ungroupedIds',[]))|set(context.get('nativeGlyphResourceScales',{}))|set(context.get('sharedResourceScales',{}))|{e['id'] for e in ordinary if e.get('cornerAttachment')}
-    from multires_app.layout.screen_relations import footer_rails
+    from multires_app.layout.screen_relations import footer_rails,horizontal_attachment
+    authored_members={mid for g in options.get('groups',[]) for mid in g.get('members',[])}
+    if options.get('inferScreenRelations',True):
+        for e in elements:
+            if not e['layout'] and e['id'] not in authored_members and e['role'] not in {'background','gesture-layer','interaction-layer'}:
+                e['horizontalAttachment']=horizontal_attachment(e['source_edge_bbox'],viewport,e['source_visual_bbox'])
+        # Edge atoms keep their own roots instead of inheriting an interior
+        # container's centered origin. Their internal image/button binding stays.
+        ungrouped.update(e['id'] for e in ordinary if e.get('horizontalAttachment'))
     rails=footer_rails(ordinary,viewport) if options.get('inferScreenRelations',True) else []
     rail_ids={cid for rail in rails for cid in rail['members']}
     edges = sparse_edges([e for e in ordinary if e['id'] not in context.get('fixedTransforms',{}) and e['id'] not in ungrouped and e['id'] not in rail_ids], viewport)
@@ -280,6 +290,10 @@ def build_ir(components, viewport, context, options):
         if g['id'] in roots and not authored and options.get('inferScreenRelations',True):
             members=[uid for mid in g['members'] if mid in by_id for uid in by_id[mid]['member_ids']]
             g['screenAttachment']=scripted_edges(g['bbox'],viewport,members,context.get('model',{}),aliases)
+            # A canonical animation frame cannot invent a hard screen edge.
+            if g['screenAttachment'].get('x',{}).get('priority')=='required':g['screenAttachment'].pop('x')
+            if len(g['members'])==1 and by_id.get(g['members'][0],{}).get('horizontalAttachment'):
+                g['screenAttachment']['x']=dict(by_id[g['members'][0]]['horizontalAttachment'])
             if len(g['members'])==1:g['screenAttachment'].update(by_id.get(g['members'][0],{}).get('screenEdgeIntent',{}))
             corner=by_id.get(g['members'][0],{}).get('cornerAttachment') if len(g['members'])==1 else None
             if corner:
@@ -292,6 +306,8 @@ def build_ir(components, viewport, context, options):
                                         abs(b[axis]+b[size]/2-extent/2)<=max(2.,extent*.015)]
             g['centerRequiredAxes']=[axis for axis in g['centerAxes'] if abs(b[axis]+b['w' if axis=='x' else 'h']/2-viewport['width' if axis=='x' else 'height']/2)<=.01 and not any(mid in context.get('fixedTransforms',{}) for mid in g['members'])]
             if corner:g['centerAxes']=[];g['centerRequiredAxes']=[]
+            g['centerAxes']=[axis for axis in g['centerAxes'] if g['screenAttachment'].get(axis,{}).get('priority')!='required']
+            g['centerRequiredAxes']=[axis for axis in g['centerRequiredAxes'] if axis in g['centerAxes']]
             for axis in g['centerAxes']:g['screenAttachment'].pop(axis,None)
     # Only independent atoms are eligible; custom grouping remains authoritative.
     atom_roots={g['members'][0]:g['id'] for g in groups if g['id'] in roots and len(g['members'])==1 and g['members'][0] in by_id and g.get('provenance')!='manual hierarchy'}

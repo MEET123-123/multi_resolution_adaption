@@ -134,7 +134,7 @@ class AnchorTests(unittest.TestCase):
             bad={'newClippedComponentSnapshots':1,'newSourceDisjointOverlaps':2,'fixedTransformDrift':0,'screenRelationViolations':0,'screenRelationErrorPx':0}
             good={'newClippedComponentSnapshots':0,'newSourceDisjointOverlaps':0,'fixedTransformDrift':0,'screenRelationViolations':0,'screenRelationErrorPx':0}
             # Isolate scoring here; containment rejection has its own regression.
-            with patch('multires_app.layout.layout_quality.quality',side_effect=[bad,good]),patch('multires_app.layout.canvas_bounds.violations',return_value=[]),patch('multires_app.layout.spatial_flow.flow_errors',return_value=[]),patch('multires_app.layout.layout_quality.screen_relation_errors',return_value=[]):finalize_anchor_device(p,d)
+            with patch('multires_app.layout.layout_quality.quality',side_effect=[bad,good]),patch('multires_app.layout.canvas_bounds.violations',return_value=[]),patch('multires_app.layout.spatial_flow.flow_errors',return_value=[]),patch('multires_app.layout.layout_quality.screen_relation_errors',return_value=[]),patch('multires_app.layout.screen_relations.horizontal_attachment_errors',return_value=[]):finalize_anchor_device(p,d)
             self.assertEqual(d['layoutQuality']['selection'],'baseline-rollback')
             d['profile']['adaptation']={'anchorLayout':{'constraints':[]}}
             with patch('multires_app.layout.layout_quality.quality') as metric:finalize_anchor_device(p,d);metric.assert_not_called()

@@ -40,3 +40,8 @@ artifacts/logs/*.log
 *.key
 Thumbs.db
 .DS_Store
+
+# Local adaptation workspace: large generated assets and raw material images.
+/new_adaption/
+tests/tmp*/
+*.sqlite3

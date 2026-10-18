@@ -13,6 +13,16 @@ from multires_app.pipeline.scene_clusters import transformed_box
 
 
 class ResourceScalingTests(unittest.TestCase):
+    def test_scene_correspondence_sets_relative_size_floor(self):
+        from multires_app.layout.visual_scaling import resource_scale
+        source={'width':1080,'height':2340}
+        options={'minContainFraction':1.0}
+        sizing=resource_scale(source,{'w':1080,'h':675},options)
+        self.assertAlmostEqual(sizing['minScale'],675/2340)
+        self.assertGreater(sizing['minScale'],.03)
+        self.assertAlmostEqual(resource_scale(source,{'w':2160,'h':1350},options)['minScale'],2*sizing['minScale'])
+        with self.assertRaises(ValueError):resource_scale(source,{'w':1080,'h':675},{'minContainFraction':1.01})
+
     def test_balanced_policy_limits_occupancy_and_preserves_similar_shapes(self):
         from multires_app.layout.visual_scaling import resource_scale
         source={'width':1080,'height':2160}

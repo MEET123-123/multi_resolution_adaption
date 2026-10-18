@@ -63,6 +63,7 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                                    'spatialFlowPolicy':base.get('spatialFlowPolicy'),
                                    'spatialAlignmentPolicy':base.get('spatialAlignmentPolicy'),
                                    'layoutIRRef':base.get('layoutIRRef'),
+                                   'horizontalEdgeAttachments':copy.deepcopy(base.get('horizontalEdgeAttachments',{})),
                                    'validation':{'required_ok':base.get('validation',{}).get('required_ok',True),'inherited':True},
                                    'reusedFrom':context.get('layoutRequest',{}).get('baseState')}
         return mapping
@@ -143,6 +144,11 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                 visual=context.get('stableVisualBounds',{}).get(cid,known[cid]['bounds']);origin=known[cid]['bounds']
                 visual_parts.append({'x':leaf['x']+visual['x']-origin['x'],'y':leaf['y']+visual['y']-origin['y'],'w':visual['w'],'h':visual['h']})
             g['_center_bounds']=box_union(visual_parts)
+            if len(members)==1:
+                cid=next(iter(members));element=next((e for e in ir['elements'] if e['id']==cid),None)
+                if element and element.get('horizontalAttachment'):
+                    frame=element['current_edge_bbox'];origin=known[cid]['bounds'];leaf=geo['leaves'][cid]
+                    g['_horizontal_bounds']={'x':leaf['x']+frame['x']-origin['x'],'w':frame['w']}
             if g.get('cornerAttachment'):
                 parts=[]
                 for cid,leaf in geo['leaves'].items():
@@ -166,7 +172,7 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
             for axis,intent in g.get('screenAttachment',{}).items():
                 size='w' if axis=='x' else 'h';extent=source_vp['width' if axis=='x' else 'height']
                 if g.get('cornerAttachment'):intent.pop('targetMargin',None)
-                else:intent['targetMargin']=intent['margin']*region[size]/extent
+                elif intent.get('marginScale')!='resource':intent['targetMargin']=intent['margin']*region[size]/extent
             # Screen attachments survive a change from anchor to track packing.
             # Margins follow the corresponding viewport axis, while resources
             # use the shared balanced uniform scale.
@@ -174,7 +180,8 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                 scale=desired[gid]['w']/geo['size']['w']
                 for axis,intent in g.get('screenAttachment',{}).items():
                     size='w' if axis=='x' else 'h';origin=region[axis];extent=region[size]
-                    margin=intent.get('targetMargin',intent['margin']*scale)
+                    from multires_app.layout.screen_relations import attachment_margin
+                    margin=attachment_margin(intent,scale)
                     desired[gid][axis]=(origin+margin if intent['edge'] in {'left','top'} else
                                         origin+extent-desired[gid][size]-margin)
                 for axis in g.get('centerAxes',[]):
@@ -196,7 +203,8 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
             else:
                 g.pop('_stable_bounds',None)
                 g['allow_crop']=(ref['x']+ref['w']<=0 or ref['y']+ref['h']<=0 or
-                                 ref['x']>=source_vp['width'] or ref['y']>=source_vp['height'])
+                                 ref['x']>=source_vp['width'] or ref['y']>=source_vp['height'] or
+                                 g.get('screenAttachment',{}).get('x',{}).get('marginScale')=='resource')
         for rail in ir.get('screenDistributions',[]):
             ids=rail['roots'];n=len(ids)
             rail['targetLeftMargin']=rail['leftMargin']*region['w']/source_vp['width']
@@ -285,6 +293,7 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                         else:y=pos
                     visual=e.get('source_visual_bbox',ref);current_visual=e.get('current_visual_bbox',b)
                     for axis,size,extent in [('x','w',source_vp['width']),('y','h',source_vp['height'])]:
+                        if axis=='x' and e.get('horizontalAttachment'):continue
                         if abs(visual[axis]+visual[size]/2-extent/2)<=max(2.,extent*.015):
                             centered.append(axis)
                             pos=region[axis]+region[size]/2-(current_visual[axis]+current_visual[size]/2-b[axis])*s
@@ -300,6 +309,12 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                         tx=max(region['x']-envelope['x']*s,min(tx,region['x']+region['w']-(envelope['x']+envelope['w'])*s))
                         ty=max(region['y']-envelope['y']*s,min(ty,region['y']+region['h']-(envelope['y']+envelope['h'])*s))
                         output[cid]={'sx':s,'sy':s,'tx':tx,'ty':ty}
+                    if e.get('horizontalAttachment'):
+                        intent=e['horizontalAttachment'];t=output[cid]
+                        margin=intent['margin']*(t['sx'] if intent.get('marginScale')=='resource' else region['w']/source_vp['width'])
+                        frame=e['current_edge_bbox']
+                        edge_x=region['x']+margin if intent['edge']=='left' else region['x']+region['w']-margin-frame['w']*t['sx']
+                        t['tx']=edge_x-frame['x']*t['sx']
                     from multires_app.layout.offscreen_geometry import retain_offscreen
                     output[cid]=retain_offscreen(visual,current_visual,output[cid],source_vp,region)
                 continue
@@ -320,6 +335,10 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                                    'visualSizing':sizing,
                                    'placementPolicy':placement_policy,
                                    'screenDistributions':ir.get('screenDistributions',[]),
+                                   'horizontalEdgeAttachments':{e['id']:{**e['horizontalAttachment'],
+                                       **({} if e['horizontalAttachment'].get('marginScale')=='resource' else
+                                          {'targetMargin':e['horizontalAttachment']['margin']*region['w']/source_vp['width']})}
+                                       for e in ir['elements'] if e.get('horizontalAttachment')},
                                    'spatialFlows':ir.get('spatialFlows',[]),
                                    'spatialFlowPolicy':'source-disjoint-adaptive-gaps',
                                    'spatialAlignmentPolicy':'source-visible-shared-lines-v1',
@@ -331,6 +350,7 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                                               'screenAttachment':g.get('screenAttachment',{}),'centerAxes':g.get('centerAxes',[]),
                                               'cornerAttachment':g.get('cornerAttachment'),
                                               'cornerLocalBounds':g.get('_corner_bounds'),
+                                              'horizontalLocalBounds':g.get('_horizontal_bounds'),
                                               'sourceVisualBounds':g.get('sourceVisualBounds'),'centerLocalBounds':g.get('_center_bounds'),
                                               'centerRequiredAxes':g.get('centerRequiredAxes',[]),
                                               'centerReferenceMembers':g.get('centerReferenceMembers'),

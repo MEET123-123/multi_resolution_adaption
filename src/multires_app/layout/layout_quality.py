@@ -76,8 +76,12 @@ def screen_relation_errors(desc,transforms,plan):
         for axis,intent in g.get('screenAttachment',{}).items():
             size='w' if axis=='x' else 'h';scale=scale_of(gid)
             if scale is None:continue
-            value=q[axis]-region[axis] if intent['edge'] in {'left','top'} else region[axis]+region[size]-q[axis]-q[size]
-            errors.append(abs(value-intent.get('targetMargin',intent['margin']*scale)))
+            edge_box=q
+            if axis=='x' and g.get('horizontalLocalBounds') and not g.get('cornerLocalBounds'):
+                frame=g['horizontalLocalBounds'];edge_box={**q,'x':q['x']+frame['x']*scale,'w':frame['w']*scale}
+            value=edge_box[axis]-region[axis] if intent['edge'] in {'left','top'} else region[axis]+region[size]-edge_box[axis]-edge_box[size]
+            from multires_app.layout.screen_relations import attachment_margin
+            errors.append(abs(value-attachment_margin(intent,scale)))
         for axis in g.get('centerAxes',[]):
             size='w' if axis=='x' else 'h'
             visual=visual_box(gid) or q
@@ -147,6 +151,8 @@ def finalize_anchor_device(project,device):
             if not plan.get('spatialFlowPolicy'):continue
             alternative=by_state[original['state']]
             if sum(screen_relation_errors(describe_layout(project,alternative),alternative['transforms'],plan))>.1:use_baseline=False
+            from multires_app.layout.screen_relations import horizontal_attachment_errors
+            if horizontal_attachment_errors(project,device,{**alternative,'adaptationPlan':plan}):use_baseline=False
     device['layoutQuality']={'selection':'baseline-rollback' if use_baseline else 'anchor',
                             'candidate':candidate,'baseline':previous,'automaticRollback':use_baseline,
                             'reviewRequired':True,'scope':'component bbox proxies; no designer-intent labels',
@@ -175,6 +181,7 @@ def finalize_anchor_device(project,device):
         layout['adaptationPlan']={'policy':'nine-grid-anchor-kiwi','route':'baseline-rollback','generator':'adaptive-theme-layout-v1',
                                  'layoutIRRef':proposal.get('layoutIRRef'),'groups':groups,'reusedFrom':proposal.get('reusedFrom'),
                                  'safeRegion':proposal.get('safeRegion'),'frozenIds':proposal.get('frozenIds',[]),
+                                 'horizontalEdgeAttachments':copy.deepcopy(proposal.get('horizontalEdgeAttachments',{})),
                                  'validation':{'required_ok':True,'backend':'baseline-geometry-and-frozen-guard',
                                                'inferredProposalAccepted':False,'authoredConstraintsPresent':False},
                                  'previousPlan':{k:v for k,v in chosen.get('adaptationPlan',{}).items() if k not in {'blocks','datetimePlacement'}},
