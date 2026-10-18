@@ -45,3 +45,6 @@ Thumbs.db
 /new_adaption/
 tests/tmp*/
 *.sqlite3
+
+# WorkBuddy workspace data.
+/.workbuddy/
