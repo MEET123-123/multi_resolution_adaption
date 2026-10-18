@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Lockscreen version="1" screenWidth="1080" frameRate="30">
+  <Var name="panel" expression="0" persist="true" />
+  <Var name="pressed" expression="0" />
+  <Var name="count" expression="0" />
+  <Var name="slide"><VariableAnimation repeat="1"><AniFrame time="0" value="0" /><AniFrame time="400" value="100" /></VariableAnimation></Var>
+  <Group name="header" x="60" y="80">
+    <Text name="label" text="交互场景演示" x="0" y="0" size="60" />
+    <Text name="counter" textExp="'点击次数：'+#count" x="0" y="100" size="36" />
+  </Group>
+  <Group name="content" x="160" y="700">
+    <Image name="art" src="red.png" x="0" y="0" w="760" h="700" visibility="eq(#panel,0)" />
+    <Image name="art" src="blue.png" x="0" y="0" w="760" h="700" visibility="eq(#panel,1)" />
+    <Text text="详情展开" x="850" y="100" size="40" visibility="eq(#panel,1)" />
+    <Button name="switch" x="0" y="0" w="760" h="700">
+      <Triggers>
+        <Trigger action="down"><VariableCommand name="pressed" expression="1" /></Trigger>
+        <Trigger action="up">
+          <VariableCommand name="panel" expression="1-#panel" condition="eq(#pressed,1)" />
+          <VariableCommand name="count" expression="#count+1" condition="eq(#pressed,1)" />
+          <VariableCommand name="pressed" expression="0" />
+        </Trigger>
+      </Triggers>
+    </Button>
+  </Group>
+  <Group name="footer" x="160" y="1900">
+    <Text text="拖动此区域改变面板" x="0" y="0" size="40" />
+    <Button name="drag" x="0" y="0" w="760" h="150">
+      <Triggers><Trigger action="up"><VariableCommand name="panel" expression="ifelse(gt(#touch_x-#touch_begin_x,50),1,0)" /></Trigger></Triggers>
+    </Button>
+  </Group>
+</Lockscreen>

@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "note": "算法演示目标，非具体机型参数；safeInsetsPx 可按实机测量填写。",
+  "profiles": [
+    {
+      "id": "phone-similar", "device": "相近比例演示",
+      "resolutionPx": {"width": 1080, "height": 2280},
+      "orientations": ["portrait"],
+      "adaptation": {"mode": "auto", "aspectThreshold": 0.18}
+    },
+    {
+      "id": "phone-double-pixels", "device": "像素数翻倍、构图比例相同",
+      "resolutionPx": {"width": 2160, "height": 4320},
+      "orientations": ["portrait"]
+    },
+    {
+      "id": "tablet", "device": "2560×1600 平板",
+      "resolutionPx": {"width": 2560, "height": 1600},
+      "orientations": ["portrait", "landscape"],
+      "safeInsetsPx": {"left": 0, "right": 0, "top": 0, "bottom": 0},
+      "adaptation": {"mode": "auto", "aspectThreshold": 0.18,
+                     "marginRatio": 0.035, "gapRatio": 0.025,
+                     "flow": "row-major", "maxScale": 1.0}
+    }
+  ]
+}

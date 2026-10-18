@@ -1,0 +1,113 @@
+{
+  "formatVersion": 1,
+  "coordinateUnit": "device-reported-pixel; verify theme-engine coordinate scaling before use",
+  "profiles": [
+    {
+      "id": "pura-x-cover",
+      "device": "HUAWEI Pura X",
+      "formFactor": "foldable",
+      "displayState": "folded-cover",
+      "resolutionPx": { "width": 980, "height": 980 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/pura-x/specs/"
+    },
+    {
+      "id": "pura-x-inner",
+      "device": "HUAWEI Pura X",
+      "formFactor": "foldable",
+      "displayState": "unfolded-inner",
+      "resolutionPx": { "width": 2120, "height": 1320 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/pura-x/specs/"
+    },
+    {
+      "id": "pura-x-max-cover",
+      "device": "HUAWEI Pura X Max",
+      "formFactor": "foldable",
+      "displayState": "folded-cover",
+      "resolutionPx": { "width": 1848, "height": 1264 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/pura-x-max/specs/"
+    },
+    {
+      "id": "pura-x-max-inner",
+      "device": "HUAWEI Pura X Max",
+      "formFactor": "foldable",
+      "displayState": "unfolded-inner",
+      "resolutionPx": { "width": 2584, "height": 1828 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/pura-x-max/specs/"
+    },
+    {
+      "id": "mate-xt-single",
+      "device": "HUAWEI Mate XT / Mate XTs",
+      "formFactor": "tri-fold",
+      "displayState": "single-screen",
+      "resolutionPx": { "width": 2232, "height": 1008 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/mate-xt-ultimate-design/specs/"
+    },
+    {
+      "id": "mate-xt-dual",
+      "device": "HUAWEI Mate XT / Mate XTs",
+      "formFactor": "tri-fold",
+      "displayState": "dual-screen",
+      "resolutionPx": { "width": 2232, "height": 2048 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/mate-xt-ultimate-design/specs/"
+    },
+    {
+      "id": "mate-xt-triple",
+      "device": "HUAWEI Mate XT / Mate XTs",
+      "formFactor": "tri-fold",
+      "displayState": "triple-screen",
+      "resolutionPx": { "width": 2232, "height": 3184 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/mate-xt-ultimate-design/specs/"
+    },
+    {
+      "id": "tablet-mock-16-10",
+      "device": "Generic tablet mock",
+      "formFactor": "tablet",
+      "displayState": "tablet-screen",
+      "resolutionPx": { "width": 2560, "height": 1600 },
+      "safeInsetsPx": null,
+      "source": null,
+      "mockResolution": true,
+      "note": "仅用于预览占位；替换为实际平板型号及锁屏画布尺寸。"
+    },
+    {
+      "id": "dual-fold-mock-cover",
+      "device": "Generic dual-fold mock",
+      "formFactor": "dual-fold",
+      "displayState": "folded-cover",
+      "resolutionPx": { "width": 1080, "height": 2400 },
+      "safeInsetsPx": null,
+      "source": null,
+      "mockResolution": true,
+      "note": "模拟外屏画布；非具体机型参数。"
+    },
+    {
+      "id": "dual-fold-mock-inner",
+      "device": "Generic dual-fold mock",
+      "formFactor": "dual-fold",
+      "displayState": "unfolded-inner",
+      "resolutionPx": { "width": 2160, "height": 2400 },
+      "safeInsetsPx": null,
+      "source": null,
+      "mockResolution": true,
+      "note": "展开态宽度按源直板机画布宽度的两倍（2160 px）设置，高度保持一致；仅为模拟画布，非具体机型参数。"
+    },
+    {
+      "id": "pura-x-view",
+      "device": "HUAWEI Pura X View",
+      "formFactor": "straight-phone-wide-display",
+      "displayState": "portrait-lockscreen",
+      "orientation": "portrait",
+      "resolutionPx": { "width": 1320, "height": 2232 },
+      "manufacturerResolutionPx": { "width": 2232, "height": 1320 },
+      "safeInsetsPx": null,
+      "source": "https://consumer.huawei.com/cn/phones/pura-x-view/specs/"
+    }
+  ]
+}

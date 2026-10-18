@@ -1,0 +1,607 @@
+技术方案  /  Architecture Proposal
+华为主题多分辨率适配锚点 · 组件分组 · 容器布局与约束求解技术设计
+从逐元素 bbox 缩放升级为设计结构感知的布局适配引擎
+版本：V1.0（评审稿）
+日期：2026 年 10 月 17 日
+适用范围：HarmonyOS 5.0+/6.0+ 主题适配研究；现阶段以锁屏静态布局为主
+状态：方案设计与工程落地建议，不代表动态资源/全主题已验证
+阅读指引与执行摘要
+本文面向算法工程、主题脚本、渲染与设计评测协作，提供可直接拆分研发任务的 AnchorLayout V1 方案。核心判断：先把原始 bbox 组织成“组、锚点、容器、约束”中间表示，再依据目标屏幕的变化幅度选择规则适配、约束求解或多模态重排；所有候选布局必须经渲染、校验、人工确认后再写回。
+重要边界：当前阶段性验证聚焦锁屏主题与静态布局。视频、序列帧、动画连续性、其他主题场景仅纳入接口预留与专项风险，不能直接视为已支持。ArkUI 布局能力用作设计参考，不等于现有主题脚本可直接调用 ArkUI。
+推荐决策
+短期落地：优先实现 Group Detector + 9 宫格 Anchor + Rigid/Row/Column/Overlay + 几何约束检查；复用现有 HTML 预览与 x/y/w/h 写回。
+核心选型：V1 使用 Python 规则与 Kiwi（Cassowary）实现线性软硬约束；Yoga/Taffy 用于 Row/Column/Grid 的后续独立试验，不建议一开始全部接入。
+质量闭环：用现有人工多分辨率配对主题评估锚点/分组是否正确；以设计师修正耗时及一次通过率为最重要的业务指标。
+文档目录
+1. 项目背景、适用范围与验收边界
+2. 核心架构与模块职责
+3. Layout IR 数据模型与 Schema
+4. 组件分组自动发现
+5. 锚点推断与坐标迁移
+6. 容器排布与尺寸策略
+7. 约束求解与冲突恢复
+8. 场景一致性、交互与渲染顺序
+9. 多模态重排与截图反馈闭环
+10. 工程接口、安全写回与 Web 预览
+11. 评测体系、实验设计与验收
+12. 开源项目调研与接入建议
+13. 研发里程碑、风险及附录
+1. 项目背景、适用范围与验收边界
+1.1 背景与现有痛点
+传统几何缩放仅使用原始 x/y/w/h，缺少锚定关系、组件分组、视觉主次与容器排布信息。小幅尺寸变化下会产生间距漂移、公共组件不一致；长宽比变化显著时，还会破坏主体构图。主题并非普通 App 页面：文字常以图片资源形式出现，素材可叠加，部分元素是不可见交互热区，并且不同交互状态可能复用相同资产。
+问题
+具体表现
+V1 应对
+逐元素独立缩放
+同一行图标间距变化；时间日期错位
+以组件组为适配单元
+缺少设计意图
+人像和装饰原有构图被破坏
+锚点、容器、分组置信度及设计师确认
+复杂遮挡
+尺寸排序可能改变真实绘制层级
+保留原渲染顺序、区分有意叠加和异常遮挡
+跨场景不一致
+公共时间/天气在不同场景中漂移
+跨场景共享公共组约束及继承
+范围边界不清
+视频/序列帧未充分验证
+V1 聚焦静态锁屏，动态资源单独立项
+1.2 V1 范围与非目标
+本阶段纳入
+明确暂不承诺
+图片类元素的坐标与尺寸适配；静态锁屏主要视觉状态
+视频画面裁剪、时序、解码性能与逐帧适配
+Group 自动发现、9 宫格锚点、容器布局
+复杂动画轨迹/序列帧连续性优化
+HTML 预览、量化检查、人工审阅、脚本安全写回
+全主题所有页面及所有交互状态的生产级覆盖
+跨场景公共组件位置一致性验证
+直接替换主题脚本渲染器或改变脚本层级定义
+1.3 设计原则
+“原来一致的继续一致，原来有意不同的保留差异”：跨场景继承只在确认同源、同设计意图时发生。
+不把“同一水平线、同一高度”当作强制分组依据；它只能产生候选组。
+布局 IR 与具体生成器解耦：规则、Kiwi、NCC、多模态都输出相同的最终坐标接口。
+先判定结构可信度，再选择处理方法；低置信度时不强行锚点化。
+只在被允许的 x/y/w/h 与系统参数范围内写回，资源 ID、触发器、脚本其他逻辑必须保持原样。
+2. 核心架构与模块职责
+图 1　建议的分层适配架构
+2.1 数据与执行链路
+1.  Skill A 解析主题脚本：提取元素 bbox、资源 ID、脚本来源、绘制顺序、交互绑定以及场景状态。
+2.  Skill B 按既有 P0–P4 抽帧规则选择稳定场景：禁止把所有动态变体笛卡尔展开。
+3.  Skill C 完成场景聚类与复用规划，识别需整页重排、局部重排和可复用布局。
+4.  Anchor Analyzer 在全局 Layout IR 上执行成组、锚点、容器及尺寸策略推断，并附置信度与证据。
+5.  Route Selector 按相对长宽比变化、约束冲突和置信度决定规则适配 / Kiwi / MLLM。
+6.  Renderer 渲染 XML/HTML 并生成截图；Evaluator 测量几何、场景一致性、视觉意图和脚本可用性。
+7.  人工确认通过后执行脚本安全写回，输出差异补丁和问题报告。
+2.2 组件边界与建议目录
+theme_adapter/
+  io/parse_source.py          # Skill A 适配输入
+  scene/sample_plan.py        # Skill B 结果
+  scene/cluster_plan.py       # Skill C 结果
+  layout_ir/schema.py         # Element / Group / Constraint
+  grouping/detector.py        # 候选关系图、组层次
+  anchor/infer.py             # 9 宫格、连续锚点
+  containers/layout.py        # Rigid / Row / Column / Grid / Overlay
+  solver/kiwi_solver.py       # 软硬约束
+  routing/selector.py         # 三级策略
+  visual/critic.py            # 可选多模态反馈
+  eval/metrics.py             # 评测
+  writeback/patcher.py        # 精确字段写回
+  web/api.py                  # 预览与交互 REST API
+3. Layout IR 数据模型与 Schema
+3.1 核心对象
+对象
+必须字段
+注意点
+Scene
+scene_id, viewport, state_signature, cluster_id
+状态签名用于区分可见集合和触发器分支
+Element
+id, bbox, asset_ref, source_ref, z_order, visible_when
+需保存资产原始尺寸与 bbox 来源
+Group
+id, child_ids, container, anchor, size_policy, confidence
+支持嵌套且禁止循环引用
+Constraint
+kind, targets, priority, weight, provenance
+区分 required / strong / medium / weak
+AdaptationResult
+viewport, element_bbox_map, issues, validation, generator
+最终写回仅消费坐标映射
+3.2 推荐 JSON 实例（关键字段示例）
+{
+  "schema_version": "1.0",
+  "scene_id": "lockscreen_scene_01",
+  "source_viewport": {"w": 1080, "h": 2400},
+  "target_viewport": {"w": 1260, "h": 2800},
+  "elements": [
+    {"id": "time", "asset_ref": "img_042",
+     "source_ref": {"script": "B.xml", "node_id": "n42"},
+     "bbox": [110, 208, 410, 110], "z_order": 28,
+     "role": "time", "visibility_condition": "state=base"},
+    {"id": "date", "asset_ref": "img_043",
+     "source_ref": {"script": "B.xml", "node_id": "n43"},
+     "bbox": [538, 222, 260, 82], "z_order": 29,
+     "role": "date", "visibility_condition": "state=base"}
+  ],
+  "groups": [{
+    "id": "g_header", "members": ["time", "date"],
+    "container": {"type": "horizontal", "gap": 18,
+                  "align": "center"},
+    "anchor": {"parent_id": "screen",
+               "parent_point": "top_center",
+               "self_point": "top_center", "offset": [0, 208],
+               "offset_unit": "px"},
+    "size_policy": "uniform_scale", "confidence": 0.88,
+    "provenance": "geometry+scene_cluster"
+  }],
+  "constraints": [
+    {"type": "preserve_order", "targets": ["time", "date"],
+     "priority": "required"}
+  ]
+}
+工程约束：示例数值仅用于表达 Schema，不代表真实主题分析结果。生产中可增补 bbox 空间（局部/屏幕）、图像透明边缘可见区域、原始资源尺寸、旋转/裁剪、字图混排、触发引用和层级信息。
+3.3 坐标系设计
+统一外部输出为目标屏幕绝对像素坐标；组内部保留局部坐标，用变换将组内坐标转换成屏幕坐标。
+为每个 bbox 标注 coordinate_space：source_screen、group_local 或 target_screen，防止多次缩放和坐标混用。
+区分 script_bbox、render_bbox、visible_alpha_bbox：图片包含透明留白时，按 script_bbox 成组可能与人眼看到的对齐不一致。
+每一条推断关系保留 provenance：手工、脚本语义、配对数据、几何规则或多模态建议。
+4. 组件分组自动发现
+图 2　从原始 bbox 到最终适配坐标的推断管线
+4.1 前处理
+1.  按场景状态过滤不可见元素；隐藏触发热区不参与视觉距离聚类，但与其所属内容保持绑定。
+2.  获取 script bbox；若能从原始素材获得 alpha 轮廓，计算 visible bbox 作为第二证据。
+3.  按 z_order / 渲染层分区，并标记占据整个屏幕的背景或大装饰，避免被纳入普通 Row。
+4.  合并明显同源的过度切分素材候选组，但必须保留成员 ID 和原始相对变换。
+4.2 Pairwise 关系特征
+对空间相近的元素 A、B 计算：顶部/中心线/底部对齐偏差、尺寸比、水平或垂直间距、重叠占比、资源来源相关性、可见状态一致性、跨场景同步移动程度。公差建议按画布尺度和元素尺度自适应，不应使用固定的 5px 判定所有分辨率。
+align_y(A,B) = min(|topA-topB|, |cyA-cyB|, |bottomA-bottomB|)
+                 / max(1, median(heightA,heightB))
+height_sim(A,B) = min(hA,hB) / max(hA,hB)
+h_gap(A,B) = max(0, B.left - A.right)  # 已按 x 排序
+overlap_ratio = intersection(A,B) / min(area(A),area(B))
+ 
+score(A,B) = w1*alignment + w2*proximity + w3*size_sim
+           + w4*semantic + w5*co_visibility + w6*paired_motion
+# 各项归一化到 [0,1]，权重通过人工配对样本校准
+4.3 组生成策略
+推荐两阶段：先识别“局部高置信度配对”，再对群组执行结构验证；不要简单对关系图取全部连通分量，因为 A 贴近 B、B 贴近 C 不代表 A/B/C 全部应成组。
+1.  用空间网格索引或 sweep-line 过滤候选边，避免数百元素执行昂贵的全量 O(n²) 关系判断。
+2.  构建具有边类型的关系图（aligned / near / fixed_gap / same_asset_family / co_visible）。
+3.  对每个候选集合尝试 Rigid、Horizontal、Vertical、Grid、Overlay 五种容器，计算排列误差与约束冲突。
+4.  按 score、容器拟合误差、渲染层一致性输出候选组；允许嵌套组，例如时间图片子块 → 时间组 → 顶部信息组。
+5.  置信度不足时保留自由元素，不强制归组；支持设计师在预览器中一键拆组/合组。
+4.4 容易误判的反例
+反例
+错误做法
+正确处理
+同高度但距离远的人像与装饰
+按中心 y 直接并入 Row
+要求间距、角色、共同移动证据
+透明素材 bbox 很大
+按 script bbox 判断占位
+优先结合 alpha 可见 bbox
+相互遮挡的拼贴素材
+强制分离、不允许重叠
+识别为 Overlay 或 Rigid
+时间与日期互斥资源
+不同时出现导致分组失败
+利用资源变体组/场景公用标识
+用户点击热区覆盖人物
+误当大尺寸可见背景
+绑定视觉主元素而非参与视觉组
+5. 锚点推断与坐标迁移
+图 3　九宫格锚点与 Group 锚定示意
+5.1 两级锚点
+一级锚点：Group 相对于屏幕或父 Group；二级锚点：组内叶子元素相对于组容器或兄弟元素。Group 应同时指定 parent_point、self_point 和 offset，才能把“靠屏幕右上角”与“自身右上角贴靠屏幕右上”精确定义。
+5.2 基本公式
+Group.x = Parent.x + u * Parent.W - us * Group.W + dx
+Group.y = Parent.y + v * Parent.H - vs * Group.H + dy
+ 
+(u,v)  = parent anchor fraction, each in {0, 0.5, 1}
+(us,vs)= self anchor fraction
+(dx,dy)= signed offset defined in parent coordinate space
+例：原屏幕 1080×2400，某 200px 宽的 Group 位于 x=800，距右侧 80px；目标屏幕 1260×2800，如果保持组宽且保持右侧 80px，则新 x=1260−200−80=980。与直接乘以 1260/1080 不同，该规则保持的是右边距。
+5.3 Offset 与尺寸自适应
+策略
+适用对象
+计算原则
+固定边距 px
+角标、固定视觉边界元素
+保持与锚点距离，考虑安全区域
+归一化边距
+设计为百分比偏移的元素
+dx/W 或 dy/H 随父尺寸变化
+等比组缩放
+人像装饰拼贴组
+选择统一缩放系数并设上下限
+独立轴缩放
+非关键背景/条幅
+仅在允许变形时执行
+包含 contain
+不可裁剪图像/主体
+完整可见但可能留白
+覆盖 cover
+可裁剪背景
+填满容器但可能裁剪
+5.4 锚点推断与“贴边或居中”判断
+先计算组相对于屏幕四边与中心的归一化距离；构造 9 个候选锚点，再按“拟合源布局位置”和“人工目标布局迁移误差”共同排序。如果存在同一设计的人工多分辨率配对版本，应优先用配对数据学习锚点，而不是仅根据某一张图离哪个边最近来判断。
+for group in scene.groups:
+    candidates = 9_grid_anchors + percent_anchor_candidates
+    for a in candidates:
+        pred = transfer(group, a, source_size, target_size)
+        err = normalized_bbox_error(pred, paired_designer_target)
+        err += lambda_rel * internal_relation_deviation(pred)
+        err += lambda_bound * boundary_penalty(pred)
+    choose argmin(err) if margin(best, runner_up) > tau
+    else mark anchor_confidence_low and route_to_solver_or_review
+5.5 断点与多模式
+不能只凭像素面积判断是否“尺寸变化不大”。建议使用宽高缩放率、长宽比变化、可用安全区域和 Layout Regularity Score 的联合判定。1080×2400 → 2560×1600 属于方向及长宽比剧烈变化，默认不进入只靠锚点迁移的通道。阈值初期可设为实验参数，通过已标注主题校准。
+6. 容器排布与尺寸策略
+6.1 V1 容器类型
+Container
+排布规则
+典型主题场景
+易错点
+Rigid
+整体平移/等比缩放，保留子元素局部位移
+人物与复杂装饰拼贴
+不要将本可自适应的独立信息组件硬合并
+Horizontal / Row
+顺序、gap、横向对齐
+时间、日期、天气或底部按钮组
+元素原本可能不等距；需允许 custom gap
+Vertical / Column
+竖直顺序、gap、水平对齐
+标题+辅助文字/图
+字体作为图像时需用 visible bbox
+Grid
+行列轨道、间距、单元宽度
+规则小图标矩阵
+V1 可以标记，复杂网格 V1.1 接入 Taffy
+Overlay
+按局部坐标叠加且保留 z_order
+背景、人物、饰件多图层
+不能用普通 Flex 对其重排
+6.2 一条具体的 Row 计算规则
+children = sort_by_original_x(group.members)
+visible_gap = original_gaps(children)
+if gap_variance_small:
+    gap_policy = equal_gap  # 同时保留原排序与对齐基准
+else:
+    gap_policy = custom_gaps  # 为每对相邻元素保存独立间距
+ 
+# target group width
+Wg = sum(target_width(child)) + sum(target_gap_i) + padding_l + padding_r
+# 先按 Group 锚点定位，再计算子元素局部 x/y
+6.3 不要混淆几何包围盒与实际视觉尺寸
+脚本 bbox 可能包含透明像素或嵌套可见层。若绘制尺寸能修改但素材不能裁剪，size_policy 必须根据资源的真实像素宽高、透明区和内容的重要性决定。对于时钟/天气图片资源，设置最小可视尺寸，避免目标屏幕缩小后不可读。
+6.4 Figma/Responsive 思想的借鉴边界
+Figma 的 Auto Layout 使用方向、gap、padding、固定/填充/包裹尺寸等机制，可借鉴为 Layout IR。对主题画面的艺术性构图不能“一律转 Flex”：大面积重叠和非规则留白需要 Rigid/Overlay/自由约束；可将 Figma 的自动建议布局思路用于候选组生成。
+7. 约束求解与冲突恢复
+7.1 约束级别
+级别
+示例
+处理
+Required / 必须
+合法 bbox、非负宽高、公共组件锁定、不可改脚本字段
+任何违反都拒绝写回
+Strong / 强
+主体长宽比、固定锚点、时间组件相对对齐
+可经设计师确认后放松
+Medium / 中
+原有间距、构图位置、视觉重心偏移
+按误差权重优化
+Weak / 弱
+个别边距、局部微调、模型建议
+尽量满足，冲突时先牺牲
+7.2 Kiwi 的使用范围
+Kiwi 实现 Cassowary 线性约束求解，适合 x、y、w、h、对齐、边距、比例等线性/可线性化条件，以及不同优先级约束。[R3] 但“不允许两个矩形重叠”的方向选择属于析取/离散决策，不能无代价地用几条线性等式表示；不要将全部碰撞规避问题直接交给 Kiwi。
+import kiwisolver as kiwi
+ 
+x, w = kiwi.Variable('x'), kiwi.Variable('w')
+canvas_width, margin = 1260.0, 80.0
+s = kiwi.Solver()
+s.addConstraint((w == 200.0) | kiwi.strength.strong)
+s.addConstraint((x + w == canvas_width - margin) | kiwi.strength.strong)
+s.addConstraint(x >= 0)
+s.addConstraint(w >= 1)
+s.addConstraint(x + w <= canvas_width)
+s.updateVariables()
+print(round(x.value()), round(w.value()))  # 980, 200
+7.3 冲突解决流程
+1.  预检测 required 约束和冻结的公共组件位置是否冲突；若冲突直接报告，不允许静默放松。
+2.  先运行容器定位，再在组内计算并联立 Kiwi 线性约束。
+3.  对存在非预期遮挡的元素对构造备选方向（A 左于 B 或 B 左于 A 等）；小范围枚举方向后由 Kiwi 解，复杂时考虑 OR-Tools CP-SAT。
+4.  若失败，按 weak → medium → strong 顺序减少软约束并记录冲突来源；required 永远不能自动降级。
+5.  通过硬约束、渲染评测且优于上轮得分后才接受方案；否则回滚到最佳历史布局。
+7.4 哪些重叠不能禁止
+主题经常设计为人物遮住背景、装饰部分覆盖主体、粒子覆盖文字边缘。仅在业务定义“不可遮挡”的元素对上检查相交。保留原 z_order 与合成规则，不能再用“元素像素越小越置顶”替代真实渲染语义；若当前渲染器顺序规则尚未核实，应把层级准确性列为独立阻断项。
+8. 跨场景一致性、交互与渲染顺序
+8.1 共用组件的全局绑定
+同一主题中公共组件可在多个可达状态中复用。先从 Skill C 场景聚类中生成 canonical_group_id，再对同一组创建“共享的 Group Anchor + Size Policy”；各场景继承位置，不允许重复由模型独立生成。但在原设计本就有意变化的状态，须记录 override_reason。
+global_group: public_time_top
+  base_constraints: anchor=top_center, scale=uniform
+  inherited_by: [scene_01, scene_02, scene_05]
+  overrides:
+    scene_07: {reason: 'designer_intent_variant', anchor: bottom_center}
+8.2 分组时纳入可达状态
+单张截图只能观察当前可见资源。互斥资源与绑定热区可能无法同时出现，需从脚本状态机获得变体对应关系；遵循已确定的 P0 基准帧、P1 互斥覆盖、P2 高风险组合、P3 固定时间/日期/电量、P4 动画按需补帧。动态资源的时序验证仍不属于静态 Anchor V1 的已验证能力。
+8.3 视频和序列帧的预留接口
+元素模型中保留 asset_type、frame_count、fit_mode、timeline_ref、reference_frame、content_rect 等字段，但短期仅在参考稳定帧上检查几何结果。后续必须评测裁剪轨迹是否连续、跨帧主体是否漂移、序列帧组的整体统一变换、编码分辨率与显存/存储开销；不可按静态单帧通过率宣称动态适配可用。
+9. 多模态重排与截图反馈闭环
+9.1 将 MLLM 定位为低置信度兜底
+对长宽比剧变、组结构复杂、锚点不确定的场景，由多模态模型提出初始 bbox 或局部修正建议，然后统一通过同一 Layout IR、硬约束与写回校验。纯多模态模型不能替代脚本状态推导、必需约束和确定性场景复用。
+9.2 截图迭代流程
+source_render + current_render + LayoutIR + frozen_groups
+                         |
+                  Visual Critic
+        (layout issues with element/group IDs)
+                         |
+              bounded bbox deltas
+                         |
+                constraint solver
+                         |
+                render + evaluate
+            / improve        \ no improve
+          accept              rollback
+                         |
+                  next iteration
+9.3 迭代安全控制
+模型只返回 element_id / group_id 对应的 delta(x,y,w,h)，默认不允许改变资源引用、z_order、交互 ID。
+每轮对修改幅度施加信任域约束（例如不超过可用宽高的特定比例，阈值需实验确定）；锁定公共组件不能改。
+保留 best-so-far，不以最后一轮自动覆盖最好一轮；迭代次数与推理预算有上限。
+视觉 critic 检测构图偏移，程序检测越界、合法性、关系及组件一致性；设计意图冲突需要设计师复核。
+全图检查后对高风险局部区域裁剪截图，再反馈给模型，减少不必要的全图视觉推理开销。
+9.4 与 NCC 模板匹配的结合
+当前已有 NCC 模板匹配路径，可将“预期渲染图 vs 当前渲染图”的候选位移用于定位误差较大的子元素，作为 Kiwi/MLLM 修正建议之一。需要处理尺度变化、遮挡、重复纹理、透明像素带来的匹配误差；对低置信度匹配不自动写回。[R7]
+10. 工程接口、安全写回与 Web 预览
+10.1 建议服务 API（与后端语言解耦）
+接口
+输入
+输出
+POST /layout/analyze
+source_scene + source_viewport
+candidate groups + confidence + relations
+POST /layout/adapt
+scene_ir + target_viewport + frozen_ids
+target_bbox_map + method + warnings
+POST /layout/evaluate
+source_preview + target_preview + bbox_map
+rule_metrics + visual_issues
+POST /layout/feedback
+scene_id + designer edits + accept/reject
+constraints_patch + scope
+POST /layout/writeback
+original script + accepted_bbox_map
+patched script + field-only diff report
+10.2 写回校验器
+坚持基于稳定节点标识/源文件位置对目标值进行最小修改，严格白名单 x、y、w、h 与批准的系统参数。对于 XML/B 主题脚本，优先选择能够保留非目标文本、属性次序和转义格式的精确补丁方式；完整 XML 重新序列化可能造成无关 diff，应谨慎使用。
+allowed_keys = {'x','y','w','h'} | approved_system_params
+assert every_changed_path in allowed_keys
+assert set(element_ids_before) == set(element_ids_after)
+assert triggers_before == triggers_after
+assert asset_refs_before == asset_refs_after
+assert z_order_before == z_order_after
+assert scene_state_machine_before == scene_state_machine_after
+assert bbox_respects_visibility_and_crop_policy
+# fail any -> block export, keep original intact
+10.3 HTML 预览交互建议
+左侧：原始布局；中间：目标布局；右侧：识别到的 Group、Anchor、尺寸策略及校验问题。
+开启网格、组轮廓、锚点标记、参考线、公共组件锁定标识、脚本层级可视化。
+设计师可“合组/拆组、锚点切换、容器类型切换、锁定关系、作用范围（当前场景/布局簇/全主题）”。
+保存每次用户修正的原始 proposal、接受/拒绝标记、修改原因，形成后续分组模型与锚点学习数据。
+11. 评测体系、实验设计与验收
+11.1 必须分开评估的三个层级
+层级
+指标
+建议解释
+算法结构
+Group Precision/Recall、Anchor Top-1、容器识别准确度
+验证结构抽象是否合理
+视觉效果
+越界率、非预期重叠率、比例保持、组内关系误差、构图偏移
+验证布局是否符合设计意图
+工程/业务
+脚本 diff 白名单通过率、跨场景一致性、人工修改时长、整套主题通过率
+验证真实可交付性
+11.2 关键指标参考公式
+inside_rate = count(bbox inside valid screen) / visible_element_count
+anchor_error = ||pred_anchor_position - designer_anchor_position|| / diag(screen)
+relation_error = mean(normalized gap / align / order deviation)
+public_drift = mean(position difference of same canonical group across scenes)
+manual_effort = designer correction minutes per theme-resolution pair
+first_pass_rate = approved without manual edit / evaluated pairs
+注意：视觉“非预期重叠”需人工定义应分离的元素对，不能用全部重叠面积衡量好坏；构图/美学的自动得分必须用设计师标注校准。禁止用未取得的示例分数作为实验结果。
+11.3 A/B 设计
+当前已对 10 套主题包进行脚本交互与抽帧验证，其中阶段结果距离预期仍有差距。建议在数据可用范围内抽取覆盖简单、规则和复杂锁屏布局的配对样本；若有人工制作的同主题多分辨率版本，可作为拟合与验收金标准，但训练和测试主题必须去重分离。
+实验组
+算法路径
+回答的问题
+Baseline A
+当前 bbox 缩放/坐标映射
+旧方案质量与人工成本基线
+方案 B
+Group + Anchor + Container
+结构化布局是否提升小幅尺寸变化效果
+方案 C
+B + Kiwi 软硬约束
+冲突解决是否增加可靠性
+方案 D
+C + MLLM + 截图反馈（可选）
+大幅变化及难例能否进一步改善
+11.4 覆盖矩阵（初版）
+维度
+初版建议分桶
+目标屏幕
+同向小变化 / 同向中变化 / 横竖屏或长宽比剧变
+场景类型
+静态单场景 / 多场景公共组件 / 多交互状态
+布局结构
+规则列表 / 混合容器 / 大量 Overlay 拼贴
+素材密度
+低（≤10）/ 中（11–50）/ 高（>50）* 仅分桶建议
+验收方式
+程序规则 + 两人独立评审 + 争议复核
+11.5 MVP 门槛（需评审确认）
+功能正确性门槛：只修改白名单字段；无非法 bbox；场景结构及脚本逻辑不变；失败自动回滚。
+效果门槛：在人工测试集中，B/C 相对 A 的视觉问题及人工修改时间不劣于基线，并在至少一类目标尺寸上取得可复现改进。
+效率门槛：记录每套主题的端到端耗时、重排耗时、预览/修正耗时；明确是否满足目标交付速度。
+动态资源与全主题适配分别立专项验证，不以锁屏通过率推断整体生产可用率。
+12. 开源项目调研与接入建议
+下表按“可直接落地”“供设计借鉴”“后续可选”区分。各项目解决的是布局链条的不同环节，并非存在一个仓库能直接解决 Huawei 主题包适配。
+项目
+经核实的能力
+对本项目的落点
+局限 / 建议优先级
+ConstraintLayout [R1]
+锚点、Guideline、Barrier、Chain、Flow、比例约束；包含核心引擎
+借鉴 Constraint Graph、水平/垂直链和约束优先级
+Android UI 系统，不直接操作华为主题；P0 原理参考
+Yoga [R2]
+C++ 的 Flexbox 布局计算
+Group 内 Row/Column/对齐/gap 规则
+不擅长复杂艺术 Overlay；P1 可选集成
+Kiwi [R3]
+Cassowary 线性强弱约束；Python 绑定
+最适合 V1 的 bbox 约束求解
+无法直接处理复杂非线性/析取碰撞；P0
+Taffy [R4]
+Rust 的 Flexbox/CSS Grid/Block 引擎
+较复杂 Group 的 Grid/Flex 布局
+若主系统 Python，需绑定/外部服务；P1
+OR-Tools [R5]
+CP-SAT、组合优化/离散约束
+冲突较多时选择左右/上下非重叠关系
+需要整数化建模与时间预算；P2
+UIED [R6]
+截图 UI 元素检测、文本/非文本合并
+可借鉴图像可见 bbox 与过切分/过合并处理
+偏应用界面；脚本已有 bbox，不应替代主数据源；P2
+OpenCV [R7]
+模板匹配等计算机视觉基础算法
+复用现有 NCC 作为位移候选和截图验证
+缩放/遮挡/重复图案易误匹配；P1
+Screen Annotation [R8]
+移动 UI 截图元素标注数据
+借鉴标注 schema 和语义元素评测
+不是艺术主题配对数据；P2
+Figma Auto Layout [R9]
+方向/间距/填充、自动建议布局（非开源）
+参考“从静态设计自动推断响应式容器”的设计理念
+仅方法参考，非可嵌入开源求解器
+12.1 优先研究的源代码和接口
+ConstraintLayout：重点阅读核心 widget/ConstraintAnchor、Chain/Guideline/Barrier/Flow 的约束表达；抽取概念与测试用例，而不是复制 Android UI XML。[R1]
+Kiwi：先直接安装 kiwisolver，在 Python 中原型化组锚点、组内对齐和 required/strong/weak 优先级，并用单元测试验证约束冲突与解除策略。[R3]
+Yoga/Taffy：编写相同的“3 个图标 Row、带变宽标题 Column、2×3 Grid”输入样例，比较与自研容器坐标的差异。对 Rigid/Overlay 继续使用自研逻辑。[R2][R4]
+UIED + OpenCV：截图分割和 NCC 仅作为辅助证据；主数据仍应以内部解析脚本 bbox、资源与交互元数据为准，降低数据丢失风险。[R6][R7]
+12.2 直接接入的建议顺序
+1.  第 1 优先：自研 Group/Anchor + 轻量 Python 容器布局；避免过早引入复杂依赖。
+2.  第 2 优先：kiwisolver，优化软硬约束并输出可解释失败报告。
+3.  第 3 优先：OpenCV/NCC 位移建议接入同一修改接口。
+4.  第 4 优先：当出现高频 Grid/Flex 复杂容器，再单独评估 Taffy 或 Yoga；不要同时嵌入两个引擎。
+5.  第 5 优先：针对必须做离散方向选择的场景局部启用 OR-Tools CP-SAT。
+13. 研发里程碑、任务清单与风险
+13.1 分阶段实施
+阶段
+交付内容
+检查点
+M0：数据与回归基线
+标准 Layout IR、场景导出、原/目标预览、不可变脚本快照
+10 套主题或现有可用样本可重复运行
+M1：AnchorLayout V1
+Group 候选、9 锚点、Rigid/Row/Column/Overlay
+可导出分组图与首轮目标 bbox
+M2：求解与可控编辑
+Kiwi 接入、冻结公共组、可视化调整、回滚
+无强约束违规导出，坏例可解释
+M3：批量评测
+测试集、业务评测、设计师复核和 Badcase 报告
+和旧算法做同样本 A/B，对结果可追溯
+M4：疑难布局兜底
+MLLM+截图反馈和 NCC 纠偏接口
+迭代不得破坏白名单及 best-so-far
+专项后续：动态资源
+视频/序列帧/动画时空适配实验
+独立验收，不能复用静态指标代替
+13.2 首轮任务拆分
+算法工程：数据归一化、关系图、组置信度、锚点推断、容器排布、求解器、评测指标。
+主题工程：脚本来源稳定 ID、交互状态映射、渲染顺序核验、精确写回和回归。
+前端/工具：Group 可视化、锁定、合组拆组、左中右对比、问题区域标注。
+设计评审：建立分组/锚点标注规范、人工金标准、设计意图破坏标签与复审机制。
+13.3 关键风险登记
+风险
+早期信号
+缓解策略
+误分组导致“绑定错误”
+组内元素来自不同语义/状态、关系残差大
+低置信度保留自由元素；设计师一键拆组
+锚点判定错误
+两种候选锚点误差接近
+配对人工目标验证 + 置信度门控
+强约束冲突
+求解器无可行解
+明确失败证据，拒绝写回，人工复核
+图层与遮挡误判
+视觉渲染与 bbox 判断不一致
+保留原绘制顺序，叠加规则单独验证
+大幅长宽比变化
+规则方案产生过大裁剪/留白
+策略路由到约束/多模态，设计师审核
+跨场景公共组件漂移
+同 canonical_group 不同坐标
+全局共享约束、变体显式 override
+动态资源适配风险
+稳定帧通过但动画抖动
+专项时序评测，不进入静态交付承诺
+依赖与许可证合规
+开源库迁移、许可不匹配
+代码接入前核对当前 commit/LICENSE 和合规流程
+13.4 关键设计决策建议
+建议立项 AnchorLayout V1，而非一次性做“所有主题自动响应式”。先测量 Group 识别准确性、锚点迁移效果和人工修正成本；只有 A/B 数据显著支持时，才扩大算法覆盖范围。
+附录 A：核心算法伪代码
+def adapt(scene_ir, target_viewport, model=None):
+    normalized = normalize_source(scene_ir)
+    graph = build_sparse_relation_graph(normalized.elements)
+    groups = infer_groups(graph, script_semantics=normalized.metadata)
+    groups = validate_hierarchy(groups, forbid_cycles=True)
+    anchor_candidates = infer_anchors(groups, normalized.viewport)
+    strategy = route_layout(groups, anchor_candidates, target_viewport)
+ 
+    if strategy == 'ANCHOR':
+        proposed = layout_anchor_containers(groups, target_viewport)
+    elif strategy == 'SOLVER':
+        proposed = solve_with_kiwi(groups, target_viewport)
+    else:
+        proposed = model.propose_layout(normalized, target_viewport)
+        proposed = enforce_constraints(proposed, groups, target_viewport)
+ 
+    validation = validate_bbox_constraints(proposed, normalized)
+    render = render_preview(proposed)
+    metrics = evaluate(render, normalized, validation)
+    if not validation.required_ok:
+        return FAILURE_WITH_REPORT
+    return AdaptationResult(proposed, metrics, validation)
+附录 B：单元测试与回归清单
+1.  Group：三张水平图标可正确归为 Row；同高度但空间远离的两个主体不误归组；背景不与内容 Row 混合。
+2.  Anchor：右上角组在目标画布扩大时保持右边距；中心组保持中心；归一化位移单位正确。
+3.  Container：Row 保序、Column 保序、Rigid 相对位置保持、Overlay 保留 z_order 与允许重叠。
+4.  Solver：强约束不能自动降级，软约束冲突返回解释；不允许的碰撞组合不通过。
+5.  Scene：同组公共组件跨场景继承；设计差异 override 保留；可达状态签名可复现。
+6.  Writeback：脚本仅 x/y/w/h 和批准系统变量发生变化；任何资源引用、层级或触发器差异拒绝写回。
+7.  Visual：多个目标分辨率回归；HTML 预览和真实主题渲染对齐的差异单独检查。
+8.  Dynamic：视频和序列帧明确标为尚未通过，不借静态结果覆盖验收。
+参考资料与项目入口
+查阅日期：2026-10-17。以下链接均用于开源实现分析或方法参考；最终依赖版本、许可合规与兼容性应在实际集成时再次检查。
+[R1] androidx/constraintlayout  锚点、链、Guideline、Barrier、Flow、核心约束引擎https://github.com/androidx/constraintlayout
+[R2] react/yoga  嵌入式 Flexbox；Row/Column 可参考https://github.com/react/yoga
+[R3] nucleic/kiwi  Cassowary 线性约束，Python 绑定https://github.com/nucleic/kiwi
+[R4] DioxusLabs/taffy  Rust Flexbox / Grid / Block 布局引擎https://github.com/DioxusLabs/taffy
+[R5] google/or-tools  CP-SAT 离散/组合优化https://github.com/google/or-tools
+[R6] MulongXie/UIED  截图元素检测、检测合并https://github.com/MulongXie/UIED
+[R7] OpenCV Template Matching  模板匹配 NCC 接口参考https://docs.opencv.org/3.0.0/d4/dc6/tutorial_py_template_matching.html
+[R8] Google Screen Annotation  移动 UI 标注规范参考https://github.com/google-research-datasets/screen_annotation
+[R9] Figma Guide to Auto Layout  商业工具的方法论参考，非开源库https://help.figma.com/hc/en-us/articles/360040451373-Guide-to-auto-layout-in-Figma
+[R10] Figma Suggest Auto Layout  自动推断布局容器的产品设计参考https://help.figma.com/hc/en-us/articles/5731482952599-Toggle-on-auto-layout-in-designs
+[R11] Huawei RelativeContainer  ArkUI 相对布局思想参考；不等于主题脚本能力https://developer.huawei.com/consumer/en/doc/harmonyos-references/ts-container-relativecontainer

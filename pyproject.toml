@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "harmony-theme-multires"
+version = "0.1.0"
+description = "鸿蒙锁屏主题交互分析、多分辨率布局与主题包导出"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["Pillow==12.3.0", "numpy==2.3.5", "kiwisolver==1.4.9"]
+
+[project.optional-dependencies]
+service = ["uvicorn==0.54.0", "click==8.5.0", "h11==0.16.0"]
+
+[project.scripts]
+multires = "multires_app.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"multires_app.preview" = ["*.js", "*.html"]
+"multires_app.service" = ["*.html"]

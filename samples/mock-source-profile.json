@@ -1,0 +1,8 @@
+{
+  "id": "mock-straight-phone",
+  "device": "Mock Straight Phone",
+  "formFactor": "straight-phone",
+  "displayState": "portrait-lockscreen",
+  "resolutionPx": { "width": 1080, "height": 2400 },
+  "safeInsetsPx": { "top": 72, "right": 0, "bottom": 96, "left": 0 }
+}

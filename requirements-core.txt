@@ -1,0 +1,4 @@
+# Versions exercised by the local quality suite; update through a tested change.
+Pillow==12.3.0
+numpy==2.3.5
+kiwisolver==1.4.9

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Lockscreen version="1" frameRate="30" screenWidth="1080" screenHeight="2400">
+  <Image name="wallpaper" src="wallpaper/mock-wallpaper.jpg" x="0" y="0" w="1080" h="2400" />
+  <Group name="clock_block" x="0" y="260" w="1080" h="420">
+    <Time name="clock" src="time/number.png" align="center" x="120" y="300" w="840" h="170" />
+    <Text name="date" text="2026年10月13日 星期二" size="42" color="#ffffff" x="180" y="490" w="720" h="80" />
+  </Group>
+  <Image name="decoration_left" src="decor/leaf.png" x="80" y="900" w="240" h="240" />
+  <Image name="decoration_right" src="decor/leaf.png" x="760" y="900" w="240" h="240" />
+  <Var name="glow" expression="0">
+    <Trigger>
+      <VariableCommand name="glow" expression="1-#glow" />
+    </Trigger>
+  </Var>
+  <Button name="unlock_area" x="0" y="1900" w="1080" h="500">
+    <Trigger action="up">
+      <VariableCommand name="glow" expression="1" />
+      <UnlockerCommand />
+    </Trigger>
+  </Button>
+  <Button name="camera_button" x="110" y="2180" w="150" h="150">
+    <Trigger action="tap">
+      <IntentCommand action="android.media.action.STILL_IMAGE_CAMERA_SECURE" />
+    </Trigger>
+  </Button>
+  <Button name="phone_button" x="820" y="2180" w="150" h="150">
+    <Trigger action="tap">
+      <IntentCommand action="android.intent.action.DIAL" />
+      <UnlockerCommand />
+    </Trigger>
+  </Button>
+</Lockscreen>

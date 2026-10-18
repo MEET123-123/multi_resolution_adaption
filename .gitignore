@@ -1,0 +1,42 @@
+__pycache__/
+*.pyc
+.venv/
+.saas-data/
+*.egg-info/
+build/
+dist/
+artifacts/organization/tmp/
+artifacts/logs/*.log
+
+# Local theme packages, generated output, logs and historical backups.
+*.hwt
+*.zip
+*.rar
+*.log
+/artifacts/
+/archives/
+/theme/*
+!/theme/README.md
+!/theme/tablet-2560x1600/
+/theme/tablet-2560x1600/*
+!/theme/tablet-2560x1600/*.py
+!/theme/tablet-2560x1600/*.md
+!/theme/tablet-2560x1600/tablet-layouts.json
+
+# Keep only source examples and small mock inputs.
+/samples/*
+!/samples/*.py
+!/samples/*.json
+!/samples/*.md
+!/samples/mock-theme/
+!/samples/scene-theme/
+!/samples/generic-interactions/
+
+# Credentials and machine-local settings.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+Thumbs.db
+.DS_Store

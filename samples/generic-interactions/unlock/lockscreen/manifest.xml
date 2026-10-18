@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Lockscreen screenWidth="1080" version="1">
+  <Var name="clicks" expression="0"/>
+  <Var name="page" expression="0"/>
+  <Var name="returnPage" expression="0"/>
+  <Var name="choice" expression="0" persist="true"/>
+  <Var name="reminder" expression="0"/>
+  <Var name="selectionLabel" type="string" expression="ifelse(eq(#choice,0),'Classic','Summer')"/>
+  <Var name="ready" expression="ge(#clicks,3)">
+    <Trigger><VariableCommand name="reminder" expression="1"/></Trigger>
+  </Var>
+  <Group visibility="eq(#page,0)">
+    <Image name="hero" src="hero.png" x="100" y="400" w="400" h="400"/>
+    <Button name="next" x="100" y="400" w="400" h="400">
+      <Trigger action="up">
+        <VariableCommand name="clicks" expression="#clicks+1"/>
+        <VariableCommand name="page" expression="1" condition="ge(#clicks,3)"/>
+      </Trigger>
+    </Button>
+  </Group>
+  <Group name="detail" visibility="eq(#page,1)">
+    <Text textExp="@selectionLabel" x="100" y="200"/>
+    <Button name="settings" x="100" y="300" w="200" h="100">
+      <Trigger action="up"><VariableCommand name="returnPage" expression="#page"/><VariableCommand name="page" expression="2"/></Trigger>
+    </Button>
+    <Button name="home"><Trigger action="up"><VariableCommand name="page" expression="0"/></Trigger></Button>
+  </Group>
+  <Group name="settingsPanel" visibility="eq(#page,2)">
+    <Button name="choose"><Trigger action="up"><VariableCommand name="choice" expression="1-#choice"/></Trigger></Button>
+    <Button name="back"><Trigger action="up"><VariableCommand name="page" expression="#returnPage"/></Trigger></Button>
+    <Button name="later"><Trigger action="up"><VariableCommand name="choice" expression="1" delay="500"/></Trigger></Button>
+  </Group>
+</Lockscreen>
