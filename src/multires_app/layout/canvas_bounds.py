@@ -10,6 +10,7 @@ def intersects(b, viewport):
 def stable_resources(project, layout, source_layout):
     viewport=project.get('sourceDevice',{}).get('viewport',{})
     if not viewport:return []
+    inactive=set(layout.get('mediaLayout',{}).get('inactiveSceneNodeIndices',[]))
     active={}
     for row in (source_layout or {}).get('rows',[]):
         b=dict(zip(('x','y','w','h'),row[1:5]))
@@ -25,7 +26,7 @@ def stable_resources(project, layout, source_layout):
         uid=project['nodeOrder'][row[0]];cid=project['nodeComponents'].get(uid)
         b=dict(zip(('x','y','w','h'),row[1:5]))
         index=occurrences.get(row[0],0);occurrences[row[0]]=index+1
-        if (row[0] not in active or row[5]<=0 or roles.get(cid) in {'background','gesture-layer'} or
+        if (row[0] in inactive or row[0] not in active or row[5]<=0 or roles.get(cid) in {'background','gesture-layer'} or
             project['model']['nodes'][uid]['tag']=='Group' or min(b['w'],b['h'])<=0 or
             not all(math.isfinite(v) for v in b.values())):continue
         source=active[row[0]][min(index,len(active[row[0]])-1)]

@@ -29,7 +29,7 @@ def temporal_names(model):
 def temporal_ids(model):
     from multires_app.engine.scene_engine import REF, VISUAL
     names=temporal_names(model);result=set()
-    fields=('srcid','srcExp','x','y','w','h','width','height','visibility','alpha')
+    fields=('srcid','srcExp','x','y','w','h','width','height','size','space','visibility','alpha')
     for uid,node in model['nodes'].items():
         if node['tag'] not in VISUAL or node['tag']=='Group':continue
         animated=node['tag']=='Video';ancestor=uid
@@ -56,7 +56,7 @@ def frame_index_names(model):
 
 
 def playback_guard_names(model):
-    """Exclude continuous animation phases; retain non-media timed UI pages."""
+    """Exclude media phases without erasing interaction-controlled UI poses."""
     from multires_app.engine.scene_engine import REF
     volatile=temporal_names(model);preserve=set()
     for node in model['nodes'].values():
@@ -68,55 +68,14 @@ def playback_guard_names(model):
             if child['tag'] in {'Image','Video','ImageSeries'}:has_media=True;break
             stack.extend(child['children'])
         if not has_media:preserve.update(refs)
-    return (volatile-preserve)|frame_index_names(model)
+    preserve.update(page_animation_names(model))
+    return (volatile-preserve)|(frame_index_names(model)-preserve)
 
 
 def page_animation_names(model):
-    """User-started animations that move a Group and gate its controls.
-
-    These are page transitions. Their current scene pose must not be reset
-    when selecting the first frame of a video or image sequence.
-    """
-    from multires_app.engine.scene_engine import REF
-    from multires_app.interaction.interaction_ir import dependencies
-    _,transitive=dependencies(model)
-    animated={name for name,node in model.get('variables',{}).items()
-              if any(model['nodes'][c]['tag']=='VariableAnimation' for c in node['children'])}
-    started=set();positions=set();predicates=set();interactive_positions=set()
-    def refs(value):
-        direct=set(REF.findall(value))
-        return direct|set().union(*(transitive.get(n,set()) for n in direct))
-    for trigger in model['triggers']:
-        if model['nodes'][trigger['owner']]['tag']!='Button':continue
-        for c in trigger['commands']:
-            target=c['attributes'].get('target','')
-            if c['tag']=='Command' and target.endswith('.animation'):started.add(target[:-10])
-    for node in model['nodes'].values():
-        if node['tag']=='Group':
-            for axis in ('x','y'):positions.update(refs(node['attributes'].get(axis,'')))
-            pending=list(node['children']);has_button=False
-            while pending:
-                child=model['nodes'][pending.pop()]
-                if child['tag']=='Button':has_button=True;break
-                pending.extend(child['children'])
-            if has_button:
-                for axis in ('x','y'):interactive_positions.update(refs(node['attributes'].get(axis,'')))
-        if node['tag'] in {'Button','Group'}:predicates.update(refs(node['attributes'].get('visibility','')))
-    # Some native themes implement paging with a user-written start timestamp
-    # and expressions such as min((#time-#pageStart)/500,1), without an
-    # explicit VariableAnimation. Keep these Group poses at the current scene
-    # value; resetting #time to zero would put an opened drawer offscreen.
-    clocks=set()
-    for trigger in model['triggers']:
-        if model['nodes'][trigger['owner']]['tag']!='Button':continue
-        for command in trigger['commands']:
-            a=command['attributes']
-            if command['tag']=='VariableCommand' and 'time' in refs(a.get('expression','')):
-                clocks.add(a.get('name',''))
-    timed_positions={name for name in positions if name in model.get('variables',{})
-                     and 'time' in transitive.get(name,set())
-                     and transitive.get(name,set())&clocks}
-    return (animated&started&positions&predicates)|timed_positions|(animated&interactive_positions)
+    """Compatibility API; classification lives in the interaction layer."""
+    from multires_app.interaction.animation_semantics import scene_animation_names
+    return scene_animation_names(model)
 
 
 def reference(runtime, assets, node_order, asset_order):
@@ -130,7 +89,9 @@ def reference(runtime, assets, node_order, asset_order):
     if not ids:return None
     rt=Runtime(runtime.model,runtime.system['screen_width'],runtime.system['screen_height'],copy.deepcopy(runtime.state),time_ms=0)
     pages=page_animation_names(runtime.model)
-    for name in temporal_names(runtime.model):rt.state.pop(name,None)
+    # A stop or assignment is an authored state, not a playback phase. Only
+    # pure resource frame selectors may discard a paused value for layout.
+    for name in frame_index_names(runtime.model)-pages:rt.state.pop(name,None)
     for name in pages:
         value=runtime.lookup(name)
         if name not in runtime.state and name in runtime.state.get('__animations',{}):
@@ -179,19 +140,32 @@ def reference(runtime, assets, node_order, asset_order):
         source_rt=Runtime(runtime.model,source_viewport['width'],source_viewport['height'],copy.deepcopy(rt.state),time_ms=0)
         source_rt.system=copy.deepcopy(rt.system)
         source_rt.system.update(screen_width=source_viewport['width'],screen_height=source_viewport['height'])
-        source_rt.reference_phase=True
-        actual=source_rt.snapshot(assets)
-        for group in runtime.model['nodes'].values():
-            if group['tag']!='Group' or not any(set(REF.findall(group['attributes'].get(a,'')))&pages for a in ('x','y')):continue
-            descendants=set();pending=list(group['children'])
-            while pending:
-                uid=pending.pop();descendants.add(uid);pending.extend(runtime.model['nodes'][uid]['children'])
-            boxes=[e['rect'] for e in actual if e['id'] in descendants and e['visible'] and e['tag'] not in {'Group','Button'} and e['rect']['w']>0 and e['rect']['h']>0]
-            if not boxes:continue
-            w=source_viewport['width'];h=source_viewport['height']
-            outside=(min(b['x'] for b in boxes)>=w or max(b['x']+b['w'] for b in boxes)<=0 or
-                     min(b['y'] for b in boxes)>=h or max(b['y']+b['h'] for b in boxes)<=0)
-            if outside:inactive.update(ni[uid] for uid in descendants if uid in ni)
+        # Autonomous entry effects can themselves have a transparent or
+        # offscreen first frame. Probe their fixed playback phases while
+        # keeping the human-controlled pose pinned. They must not turn a
+        # normal component into an interaction-waiting component.
+        controlled_ids=set()
+        for uid in ids:
+            owner=uid
+            while owner:
+                node=runtime.model['nodes'][owner]
+                if any(set(REF.findall(node['attributes'].get(a,'')))&pages
+                       for a in ('x','y','w','h','width','height','alpha','visibility')):
+                    controlled_ids.add(uid);break
+                owner=node['parent']
+        actual=[];source_rt.reference_phase=False
+        for phase in (0,100,200,700,1600,2400):
+            source_rt.time_ms=phase;source_rt.system['time']=phase;source_rt.cache.clear()
+            actual.extend(source_rt.snapshot(assets,only_ids=controlled_ids))
+        candidates={}
+        for e in actual:
+            if e['tag']=='Group' or e['id'] not in ni:continue
+            if e['id'] in controlled_ids:candidates.setdefault(e['id'],[]).append(e)
+        w=source_viewport['width'];h=source_viewport['height']
+        for uid,elements in candidates.items():
+            boxes=[e['rect'] for e in elements if e['visible'] and e['rect']['w']>0 and e['rect']['h']>0]
+            outside=not boxes or all(b['x']>=w or b['x']+b['w']<=0 or b['y']>=h or b['y']+b['h']<=0 for b in boxes)
+            if outside:inactive.add(ni[uid])
     rows=[];warnings=[]
     for e in rt.snapshot(assets,only_ids=ids):
         if e['id'] not in ids or e['id'] not in ni or e['id'] not in possible:continue
@@ -207,7 +181,9 @@ def reference(runtime, assets, node_order, asset_order):
         rows.append([ni[e['id']],*[round(b[k],3) for k in ('x','y','w','h')],1.,ai.get(e['asset'],-1),e['text'],e['size']])
         if b['w']<=0 or b['h']<=0:warnings.append({'node':e['id'],'reason':'first-frame-canvas-unresolved'})
     result={'policy':'first-frame-affine','phaseMs':0,'nodeIndices':sorted(ni[uid] for uid in ids if uid in ni),'rows':rows,'warnings':warnings}
-    if pages:result['pageAnimationVariables']=sorted(pages)
+    if pages:
+        result['pageAnimationVariables']=sorted(pages)
+        result['sceneAnimationVariables']=sorted(pages)
     if inactive:result['inactiveSceneNodeIndices']=sorted(inactive)
     return result
 
@@ -223,6 +199,65 @@ def layout_rows(project, layout):
     references=[current[r[0]] if min(r[3:5])<=0 and r[0] in current and min(current[r[0]][3:5])>0 else r for r in ref['rows']]
     inactive=set(ref.get('inactiveSceneNodeIndices',[]))
     return sorted([r for r in [*[r for r in layout['rows'] if r[0] not in indices],*references] if r[0] not in inactive],key=lambda r:r[0])
+
+
+def retain_waiting_components(project,device):
+    """Keep dormant artwork outside the same edge of any target canvas.
+
+    Identity alone is insufficient: a pose below a short source screen can
+    become visible on a taller target. Waiting transforms are separate from
+    active solver input and are selected by the normal human state guards.
+    """
+    from collections import defaultdict
+    from multires_app.pipeline.scene_pipeline import state_guard
+    for layout in device['layouts']:
+        for cid in layout.pop('waitingComponents',[]):layout['transforms'].pop(cid,None)
+    if not any(l.get('mediaLayout',{}).get('inactiveSceneNodeIndices') for l in device['layouts']):return
+    project.get('_stateGuards',{}).pop(device['profile']['id'],None)
+    sources={l['state']:l for l in project.get('sourceDevice',{}).get('layouts',[])}
+    source_vp=project.get('sourceDevice',{}).get('viewport',device['viewport'])
+    states={s['id']:s for s in project['graph']['states']};families={};guards={};active_families={}
+    for layout in device['layouts']:
+        guard=state_guard(project,states[layout['state']],device);guards[layout['state']]=guard
+        active={project['nodeComponents'].get(project['nodeOrder'][r[0]]) for r in layout_rows(project,layout)}
+        for cid in active:
+            if cid in layout['transforms']:active_families.setdefault((guard,cid),layout['transforms'][cid])
+    for layout in device['layouts']:
+        inactive=set(layout.get('mediaLayout',{}).get('inactiveSceneNodeIndices',[]))
+        if not inactive:continue
+        active={project['nodeComponents'].get(project['nodeOrder'][r[0]]) for r in layout_rows(project,layout)}
+        source_rows=defaultdict(list);current_rows=defaultdict(list)
+        for rows,store in ((sources.get(layout['state'],{}).get('rows',[]),source_rows),(layout['rows'],current_rows)):
+            for row in rows:
+                if row[0] in inactive and min(row[3:5])>0:
+                    cid=project['nodeComponents'].get(project['nodeOrder'][row[0]])
+                    if cid is not None:store[cid].append(row)
+        guard=guards[layout['state']]
+        for cid,rows in source_rows.items():
+            # A family can already have an active pose for this component.
+            # Its solved affine must also be used by the other media phases.
+            if cid in active or not current_rows[cid]:continue
+            if (guard,cid) in active_families:
+                layout['transforms'][cid]=dict(active_families[guard,cid]);continue
+            family=families.setdefault((guard,cid),{'layouts':[],'x':[-float('inf'),float('inf')],
+                                                  'y':[-float('inf'),float('inf')]})
+            family['layouts'].append(layout)
+            for axis,start,size in (('x',1,3),('y',2,4)):
+                extent='width' if axis=='x' else 'height'
+                lo=min(r[start] for r in rows);hi=max(r[start]+r[size] for r in rows)
+                current_lo=min(r[start] for r in current_rows[cid]);current_hi=max(r[start]+r[size] for r in current_rows[cid])
+                if hi<=0:family[axis][1]=min(family[axis][1],hi-current_hi)
+                elif lo>=source_vp[extent]:
+                    family[axis][0]=max(family[axis][0],device['viewport'][extent]+lo-source_vp[extent]-current_lo)
+    for (_,cid),family in families.items():
+        transform={'sx':1.,'sy':1.,'tx':0.,'ty':0.}
+        for axis in ('x','y'):
+            low,high=family[axis]
+            if low>high:raise ValueError('incompatible waiting edges for one human state: '+cid)
+            transform['t'+axis]=max(low,min(0.,high))
+        for layout in family['layouts']:
+            layout['transforms'][cid]=dict(transform)
+            layout.setdefault('waitingComponents',[]).append(cid)
 
 
 def compact_references(project):

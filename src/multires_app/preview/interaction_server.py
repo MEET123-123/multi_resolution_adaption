@@ -92,7 +92,13 @@ class InteractiveSession:
         clones=[copy.deepcopy(rt) for rt in (self.source_runtime,self.runtime)]
         for rt in clones:
             # Evaluator.lookup is a bound method; deepcopy preserves the clone.
-            for playback in rt.state.get('__animations',{}).values():playback['started']=0
+            from multires_app.interaction.animation_semantics import scene_animation_names
+            scene_names=scene_animation_names(rt.model)
+            scene_values={name:rt.lookup(name) for name in scene_names}
+            rt.state.update(scene_values)
+            for name,playback in rt.state.get('__animations',{}).items():
+                if name not in scene_names:playback['started']=0
+            rt.cache.clear()
         samples=sorted(set([*range(0,duration_ms+1,step_ms),duration_ms]));frames=[]
         for phase in samples:
             frame={'phase':'媒体采样','timeMs':phase}

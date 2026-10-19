@@ -148,9 +148,18 @@ def infer_components(model, source_profile, assets, initial_state, overrides=Non
         if not any(outside for _,outside in poses) or not any(not outside for _,outside in poses):continue
         for c in components:c['roots']=[root for root in c['roots'] if root!=uid and not root.startswith(uid+'/')]
         components=[c for c in components if c['roots']]
-        components.append({'id':uid,'name':'Authored sliding page','roots':[uid],'members':[],
+        page={'id':uid,'name':'Authored sliding page','roots':[uid],'members':[],
             'role':'content','sourceBounds':next(b for b,outside in poses if not outside),
-            'slidingPage':True,'inference':'observed source page enters and leaves viewport; preserve subtree'})
+            'slidingPage':True,'inference':'observed source page enters and leaves viewport; preserve subtree'}
+        existing=next((c for c in components if c['id']==uid),None)
+        if existing:
+            page={**existing,**page,'roots':list(dict.fromkeys([uid,*existing['roots']]))}
+            components.remove(existing)
+        components.append(page)
+    # Introducing a page boundary can replace an attached visual root while
+    # leaving its external hit target in the previous component. Reconcile
+    # physical attachments against the final roots before assigning members.
+    components=attach_components(components,bindings,nodes)
     root_owners={root:c["id"] for c in components for root in c["roots"]}
     for c in components:c["members"]=[]
     component_index={c["id"]:c for c in components}
@@ -282,6 +291,21 @@ def create_project(source, source_profile, profiles, out, algorithm_spec="anchor
         configuration=json.loads(component_file.read_text(encoding='utf-8'))
         if 'bindings' in configuration:model.setdefault('inputs',{})['bindings']=configuration['bindings']
     assets=extract_assets(source,model,out)
+    return create_model_project(model,assets,source_profile,profiles,out,algorithm_spec,
+                                max_states,max_depth,component_file,archive_validation)
+
+
+def create_model_project(model,assets,source_profile,profiles,out,algorithm_spec='anchor',
+                         max_states=48,max_depth=4,component_file=None,archive_validation=None):
+    """Shared build pipeline for archive intake and validated local asset caches.
+
+    Callers reusing extracted resources must verify the source and resource
+    cache before entry. Interaction analysis and layout are always rebuilt.
+    """
+    from multires_app.preview.scene_previewer import build_scene_preview
+    if max_states<1 or max_depth<0:raise ValueError('状态上限需大于 0，深度不能为负')
+    source=Path(model['source']);out.mkdir(parents=True,exist_ok=True)
+    model['layoutSourceViewport']=source_canvas_profile(model,source_profile)['resolutionPx']
     from multires_app.layout.composition_layers import inspect_alpha
     inspect_alpha(assets,out)
     from multires_app.interaction.interaction_semantics import explore_human
@@ -352,6 +376,8 @@ def create_project(source, source_profile, profiles, out, algorithm_spec="anchor
              "limitations":["此解释器覆盖部分旧版锁屏 XML，非鸿蒙原生引擎。", "动画按时间采样，动画控制命令与系统应用动作列入诊断。",
                              "场景图受状态数/深度及触摸采样限制，未探索分支保留为 bounded。", "组件与角色由脚本层级、空间关系推断，可用 components 配置覆盖。"]}
     project['sourceDevice']=source_device
+    from multires_app.interaction.animation_semantics import STATE_POLICY
+    project['animationStatePolicy']=dict(STATE_POLICY)
     project['screenRelationComponentSplits']=footer_splits
     project['compositionSectionSplits']=section_splits
     project['backgroundLayerSplits']=background_splits

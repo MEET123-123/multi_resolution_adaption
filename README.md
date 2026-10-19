@@ -49,6 +49,7 @@ multi-res/
 |---|---|
 | 加入自己的布局算法 | [算法接入说明](docs/CUSTOM_LAYOUT.md) |
 | 理解交互如何变成布局 | [项目结构与处理流程](docs/PROJECT_STRUCTURE.md) |
+| 修复动画提前出现、连续跳转和时间样式状态 | [通用交互动画规则](docs/guides/INTERACTION_ANIMATION.md) |
 | 修改设备与分辨率 | [设备配置](configs/device-profiles.example.json) |
 | 找适配后的 XML 和 HWT | `theme/adaptation/<主题编号>/scenes/scripts/`、`packages/` |
 | 看半岛日记最新修复 | [屏外面板与交互修复](docs/reports/BANDAO_DRAWER_RESULTS.md) |

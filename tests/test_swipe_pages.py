@@ -137,7 +137,7 @@ class SwipePageTests(unittest.TestCase):
         uid=next(n['id'] for n in p['model']['nodes'].values() if n['tag']=='Rectangle' and n['attributes']['x']=='400')
         cid=p['nodeComponents'][uid];index=p['nodeOrder'].index(uid)
         self.assertIn(index,d['layouts'][0]['mediaLayout']['inactiveSceneNodeIndices'])
-        self.assertNotIn(cid,d['layouts'][0]['transforms'])
+        self.assertIn(cid,d['layouts'][0]['waitingComponents'])
         active=next(l for l in d['layouts'] if l['controlValues']['page']==1)
         self.assertIn(cid,active['transforms'])
         import copy

@@ -69,7 +69,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe .\multires.py tools batch-convert --help
 ```
 
-维护工具保留原流程和参数。`--layout-only` 不会重新探索交互；修改解释器或交互语义后，需要重新生成相应场景。
+维护工具保留原流程和参数。`--layout-only` 不会重新探索交互；修改解释器或交互语义后，可用 `python multires.py tools refresh-interactions --only <项目目录名>` 重新探索并生成布局。重建保留旧输出，完整步骤见 [交互动画规则](guides/INTERACTION_ANIMATION.md)。
 
 ## 在线服务
 

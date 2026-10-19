@@ -228,7 +228,7 @@ class Runtime:
         if not points:return default
         duration=points[-1][0];a=node["attributes"]
         loop=a.get("loop","false" if a.get("repeat")=="1" else "true").lower()!="false"
-        time=0 if getattr(self,'reference_phase',False) else max(0,self.time_ms if elapsed is None else elapsed)
+        time=0 if getattr(self,'reference_phase',False) else max(0,(self.time_ms if elapsed is None else elapsed)-float(self.value(a.get('delay',0))))
         t=time % duration if loop and duration>0 else min(time,duration)
         prev=points[0]
         for end in points[1:]:
@@ -285,9 +285,9 @@ class Runtime:
                         value=self.lookup(name);playing.pop(name,None);self.state[name]=value
                     else:
                         self.state.pop(name,None)
-                        playing[name]={"started":max(0,self.time_ms-2400)}
+                        playing[name]={"started":self.time_ms}
                     self.state["__animations"]=playing;self.cache.clear()
-                    self.issue(c["id"],"变量动画 play/stop 以交互后 2400ms 快照近似，repeat=1 按单次采样；缓动未模拟")
+                    self.issue(c["id"],"变量动画按实际触发时间和 delay 采样；稳定场景在交互后取样，缓动未模拟")
                 else:self.issue(c["id"],"未支持的动画控制："+str(a))
             else:
                 self.events.append({"tag":c["tag"],"attributes":a})

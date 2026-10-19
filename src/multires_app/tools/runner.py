@@ -11,6 +11,7 @@ COMMANDS={
     'iterate-aesthetics':'iterate_aesthetics',
     'repack-layouts':'repack_layouts',
     'refresh-previews':'refresh_previews',
+    'refresh-interactions':'refresh_interactions',
     'refresh-media-validation':'refresh_media_validation',
     'refresh-background-cover':'refresh_background_cover',
     'compact-layout-artifacts':'compact_layout_artifacts',

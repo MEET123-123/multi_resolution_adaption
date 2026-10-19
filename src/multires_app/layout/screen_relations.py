@@ -72,17 +72,29 @@ def horizontal_attachment_errors(project,device,layout,tolerance=.1):
     region=plan.get('safeRegion') or {'x':0,'w':device['viewport']['width']}
     desc=describe_layout(project,layout);errors=[]
     frames=component_frame_bounds(project,layout)
+    # A reused affine has one reference pose. Autonomous motion after that
+    # pose must not be mistaken for a new crop/edge anchor on every sample.
+    reference=layout;visited=set()
+    while reference['state'] not in visited:
+        visited.add(reference['state']);base=reference.get('adaptationPlan',{}).get('reusedFrom')
+        if base not in layouts:break
+        reference=layouts[base]
+    reference_frames=component_frame_bounds(project,reference)
     for cid,intent in intents.items():
         if cid not in desc or cid not in layout['transforms']:continue
         box=transformed_box(frames.get(cid,desc[cid]['bounds']),layout['transforms'][cid])
         actual=box['x']-region['x'] if intent['edge']=='left' else region['x']+region['w']-box['x']-box['w']
         expected=attachment_margin(intent,layout['transforms'][cid]['sx'])
         if intent.get('marginScale')=='resource' and project.get('sourceDevice'):
-            source=next((l for l in project['sourceDevice']['layouts'] if l['state']==layout['state']),None)
+            source=next((l for l in project['sourceDevice']['layouts'] if l['state']==reference['state']),None)
             frame=component_frame_bounds(project,source).get(cid) if source else None
             if frame:
                 margin=frame['x'] if intent['edge']=='left' else project['sourceDevice']['viewport']['width']-frame['x']-frame['w']
                 expected=margin*layout['transforms'][cid]['sx']
+                if cid in reference_frames and cid in frames:
+                    origin=reference_frames[cid];now=frames[cid]
+                    movement=now['x']-origin['x'] if intent['edge']=='left' else origin['x']+origin['w']-now['x']-now['w']
+                    expected+=movement*layout['transforms'][cid]['sx']
         if abs(actual-expected)>tolerance:errors.append({'component':cid,'edge':intent['edge'],'expectedMargin':expected,'actualMargin':actual})
     return errors
 

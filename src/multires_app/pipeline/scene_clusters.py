@@ -251,6 +251,7 @@ class LayoutConflict(ValueError):pass
 
 def schedule_device(project,device,algorithm,preserve_existing=False,_forced_full=None,_resume_prefix=0):
     forced_full=set(_forced_full or [])
+    project.get('_stateGuards',{}).pop(device['profile']['id'],None)
     if getattr(algorithm,'name','')!='anchor-theme-layout-v1':
         for key in ('sharedResourceScales','resourceScaleFamilies','nativeGlyphResourceScales'):device.pop(key,None)
     from multires_app.layout.visual_geometry import ensure_visual_bounds,component_visuals
@@ -557,4 +558,6 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
     finalize=getattr(algorithm,'finalize_device',None)
     if callable(finalize) and not preserve_existing:
         finalize(project,device)
+    from multires_app.media.media_layout import retain_waiting_components
+    retain_waiting_components(project,device)
     return device["layoutClusters"]

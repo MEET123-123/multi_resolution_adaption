@@ -44,8 +44,11 @@ def analyze_interactions(model):
         a=node["attributes"]
         if node["tag"] in VISUAL:
             visual_reads.update(REF.findall(a.get("visibility","")))
+            visual_reads.update(REF.findall(a.get("alpha","")))
             asset_reads.update(REF.findall(a.get("srcExp","")+a.get("srcid","")))
-            for key in ("x","y","w","h","width","height"):geometry_reads.update(REF.findall(a.get(key,"")))
+            for key in ("x","y","w","h","width","height","size","space","scale","scaleX","scaleY",
+                        "rotation","angle","align","alignV","color"):
+                geometry_reads.update(REF.findall(a.get(key,"")))
     for trigger in model["triggers"]:
         human=model["nodes"].get(trigger["owner"],{}).get("tag")=="Button"
         if human:condition_reads.update(REF.findall(trigger.get("condition") or ""))
@@ -102,7 +105,14 @@ def analyze_interactions(model):
     _,transitive=dependencies(model)
     touch_names={'touch_x','touch_y','touch_begin_x','touch_begin_y'}
     guard_variables={n for n in (set(model['variables'])&core_relevant)-controls if not transitive.get(n,set())&touch_names}
+    from multires_app.interaction.animation_semantics import scene_animation_names
+    scene_animations=scene_animation_names(model)
+    # A gesture can change only an animation, with no separate page flag.
+    # Such states must survive exploration, clustering and native guards.
+    behavior=sorted(set(behavior)|scene_animations)
+    guard_variables.update(scene_animations)
     return {"behaviorControls":behavior,"guardVariables":sorted(guard_variables),"dataOnlyControls":sorted(controls-set(behavior)),"userWrittenVariables":sorted(user_writes),"userControlledAnimations":sorted(user_animations),
+            "sceneAnimationVariables":sorted(scene_animations),
             "actions":actions,"variableDependencies":{n:sorted(v) for n,v in definitions.items()},
             "note":"状态保留未来条件依赖；只影响文字/数值内容的控制量不单独生成场景。未知引擎能力不作可达性证明。"}
 

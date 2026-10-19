@@ -6,6 +6,25 @@ from tests.test_anchor_layout import SOURCE,comp,ctx
 
 
 class ScreenRelationsTests(unittest.TestCase):
+    def test_reused_crop_anchor_preserves_autonomous_motion_and_still_detects_drift(self):
+        from multires_app.layout.screen_relations import horizontal_attachment_errors
+        def row(x):return [0,x,20,60,40,1,-1,'',0]
+        transform={'sx':.5,'sy':.5,'tx':50,'ty':0}
+        plan={'horizontalEdgeAttachments':{'art':{'edge':'right','margin':-40,'marginScale':'resource'}},
+              'safeRegion':{'x':0,'y':0,'w':100,'h':100}}
+        first={'state':'a','rows':[row(80)],'transforms':{'art':dict(transform)},'adaptationPlan':plan}
+        later={'state':'b','rows':[row(90)],'transforms':{'art':dict(transform)},
+               'adaptationPlan':{**plan,'reusedFrom':'a'}}
+        p={'components':[{'id':'art','name':'art','role':'decoration','members':['image']}],
+           'nodeOrder':['image'],'nodeComponents':{'image':'art'},
+           'model':{'nodes':{'image':{'tag':'Image','attributes':{},'children':[],'parent':None}},'variables':{}},
+           'sourceDevice':{'viewport':{'width':100,'height':200},
+                           'layouts':[{'state':'a','rows':[row(80)]},{'state':'b','rows':[row(70)]}]}}
+        d={'viewport':{'width':100,'height':100},'layouts':[first,later]}
+        self.assertFalse(horizontal_attachment_errors(p,d,later))
+        later['transforms']['art']['tx']+=3
+        self.assertTrue(horizontal_attachment_errors(p,d,later))
+
     def layout(self,comps,**extra):
         context=ctx(1600,1000,**extra)
         result=AnchorThemeLayout().layout_scene(comps,SOURCE,{'resolutionPx':{'width':2560,'height':1600}},context)

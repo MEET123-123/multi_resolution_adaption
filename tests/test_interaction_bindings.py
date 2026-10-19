@@ -11,6 +11,37 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class BindingTests(unittest.TestCase):
+    def test_sliding_page_keeps_external_hit_targets_with_their_visual_anchors(self):
+        from multires_app.interaction.interaction_semantics import explore_human
+        with tempfile.TemporaryDirectory(dir=ROOT/'tests') as tmp:
+            path=Path(tmp)/'lockscreen';path.mkdir()
+            (path/'manifest.xml').write_text('''<Lockscreen screenWidth="1000">
+            <Var name="page"><VariableAnimation repeat="1"><AniFrame time="0" value="0"/>
+            <AniFrame time="300" value="1"/></VariableAnimation></Var>
+            <Trigger action="init"><Command target="page.animation" value="stop"/></Trigger>
+            <Group name="drawer" x="#screen_width*(1-#page)">
+              <Rectangle name="skin" x="50" y="50" w="200" h="100" alpha="128+127*#pressed"/>
+              <Rectangle name="lower-art" x="50" y="1300" w="200" h="100"/>
+            </Group>
+            <Button name="attached" x="50+#screen_width*(1-#page)" y="50" w="200" h="100">
+            <Trigger action="up"><VariableCommand name="pressed" expression="1-#pressed"/></Trigger></Button>
+            <Button name="open" x="400" y="600" w="200" h="100"><Trigger action="up">
+            <Command target="page.animation" value="play"/></Trigger></Button></Lockscreen>''')
+            model=load_model(Path(tmp));profile={'resolutionPx':{'width':1000,'height':2000}}
+            graph=explore_human(model,profile,{},8,3)
+            components=infer_components(model,profile,{},graph['states'][0]['overrides'],None,graph)
+            owners={uid:c['id'] for c in components for uid in c['members']}
+            ids={n['attributes'].get('name'):uid for uid,n in model['nodes'].items()}
+            self.assertEqual(owners[ids['attached']],owners[ids['skin']])
+            self.assertTrue(any(c.get('slidingPage') for c in components))
+            # A smaller source group can already own the external button.
+            # Promoting that same root must preserve its page metadata too.
+            manifest=path/'manifest.xml'
+            manifest.write_text(manifest.read_text().replace('y="1300"','y="250"'))
+            model=load_model(Path(tmp));graph=explore_human(model,profile,{},8,3)
+            components=infer_components(model,profile,{},graph['states'][0]['overrides'],None,graph)
+            self.assertTrue(any(c.get('slidingPage') for c in components))
+
     def test_physical_skin_separate_from_remote_effect_and_explicit_override(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'tests') as tmp:
             path=Path(tmp)/'lockscreen';path.mkdir()

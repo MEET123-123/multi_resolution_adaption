@@ -65,8 +65,10 @@ class Evaluator:
 
     def items(self,layout,source=False):
         groups={};vp=self.svp if source else self.vp
+        inactive=set(layout.get('mediaLayout',{}).get('inactiveSceneNodeIndices',[]))
         density=(self.project['sourceProfile'] if source else self.device['profile'])['resolutionPx']['width']/vp['width']
         for row in layout.get('rows',[]):
+            if row[0] in inactive:continue
             uid=self.project['nodeOrder'][row[0]];cid=self.project['nodeComponents'].get(uid);tag=self.project['model']['nodes'][uid]['tag']
             b=dict(zip(('x','y','w','h'),row[1:5]))
             if (self.roles.get(cid) not in {'header','footer','content','popup','overlay','dialog'} or tag in {'Group','Button'} or
@@ -219,6 +221,7 @@ def project_candidate(evaluator,members,dx,dy,k,glyphs):
         for e in evaluator.resources[l['state']]:
             if e['component'] in members:envelopes.setdefault(e['component'],[]).append(e['rect'])
         for cid,boxes in envelopes.items():
+            if cid not in l['transforms']:continue
             q=transformed_box(box_union(boxes),l['transforms'][cid]);key=tuple(q.values())+tuple(region.values())
             if key in seen:continue
             seen.add(key)
@@ -231,6 +234,7 @@ def project_candidate(evaluator,members,dx,dy,k,glyphs):
             solver.addConstraint(scale>=.94/ratio);solver.addConstraint(scale<=1.06/ratio)
         for r in evaluator.alignments.get(l['state'],[]):
             if not {r['first'],r['last']}&members:continue
+            if r['first'] not in l['transforms'] or r['last'] not in l['transforms']:continue
             axis=r['axis'];size='w' if axis=='x' else 'h';origin=cx if axis=='x' else cy;shift=shift_x if axis=='x' else shift_y
             points=[]
             for cid,key in [(r['first'],'firstRect'),(r['last'],'lastRect')]:

@@ -52,6 +52,7 @@ flowchart TD
 | 文件 | 作用 |
 |---|---|
 | `interaction_semantics.py` | 将点击、滑动、长按等变成按下/移动/抬起事务；探索与重放状态 |
+| `animation_semantics.py` | 从脚本依赖区分人工控制的动画与自动播放；保存连续跳转和样式选择的场景身份 |
 | `interaction_ir.py` | 整理交互规则、变量依赖和潜在影响范围 |
 | `interaction_bindings.py` | 判断图片、文字与点击区域是否属于同一组件 |
 | `interaction_history.py` | 保存有序操作、快照、撤销与历史分支 |
@@ -104,6 +105,8 @@ flowchart TD
 | `resource_scaling.py` | 为不支持直接缩放的原生位图字形生成对应资源 |
 
 核心规则是：播放相位不等于新的交互场景；首帧参考也不能把已打开的面板变回关闭状态。
+
+初始化停止值、屏外等待组件及连续跳转的统一规则见 [交互动画与初始可见性](guides/INTERACTION_ANIMATION.md)。
 
 ### 6. `preview/`：看效果、做交互与微调
 

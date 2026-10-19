@@ -68,6 +68,12 @@ def repack_record(root,record):
     record['validation']=result;record['liveValidation']=validate_live_project(out)
     record['liveValidation']['variants']=[validate_live_project(root/v['slug']/'scenes') for v in record.get('variants',[])]
     report=json.loads((out/'report.json').read_text(encoding='utf-8'));record['layoutClustering']=report['layoutClustering'];record['diagnosticCount']=report['diagnosticCount']
+    for field in ('states','transitions','devices','coverage'):
+        if field in report:record[field]=report[field]
+    for variant in record.get('variants',[]):
+        variant_report=json.loads((root/variant['slug']/'scenes/report.json').read_text(encoding='utf-8'))
+        for field in ('states','transitions','devices','coverage'):
+            if field in variant_report:variant[field]=variant_report[field]
     record['sourceUnchanged']=digest(Path(record['source']))==record['sha256']
     record['status']='validated' if not result['failures'] and not record['liveValidation']['failures'] and not any(e['failures'] for e in record['liveValidation']['variants']) else 'needs-review'
     print(json.dumps({'verified':record['name'],'status':record['status'],'geometryIssues':result['failures']},ensure_ascii=True),flush=True)

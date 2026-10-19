@@ -17,6 +17,10 @@ class SceneFlowTests(unittest.TestCase):
         rt=Runtime(model,1080,2160,{'slide':0})
         trigger={'id':'animation-test','commands':[{'id':'play','tag':'Command','attributes':{'target':'slide.animation','value':'play'},'conditions':[]}]}
         rt.execute(trigger)
+        self.assertEqual(rt.lookup('slide'),0)
+        rt.time_ms+=200;rt.system['time']=rt.time_ms;rt.cache.clear()
+        self.assertEqual(rt.lookup('slide'),50)
+        rt.time_ms+=200;rt.system['time']=rt.time_ms;rt.cache.clear()
         self.assertEqual(rt.lookup('slide'),100)
 
     def test_expression_whitelist_lazy_branch_and_strings(self):
