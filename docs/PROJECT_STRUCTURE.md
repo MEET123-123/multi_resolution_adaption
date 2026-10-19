@@ -33,6 +33,8 @@ flowchart TD
 | `artifacts/` | 日志、测试摘要和整理记录 | 查运行问题与证据 |
 | `archives/` | 以前的项目压缩快照 | 追溯旧版本 |
 
+模型 MVP 的代码在 `src/multires_app/learning/`；mock 数据、标签缓存、LoRA 和实验对照统一在 `artifacts/learning/mock-qwen/`。参见 [使用说明](guides/QWEN_LAYOUT_MVP.md) 和 [实测记录](reports/QWEN_MVP_RESULTS.md)。
+
 ## 二、源码各部分的作用
 
 下面所有位置都相对于 `src/multires_app/`。

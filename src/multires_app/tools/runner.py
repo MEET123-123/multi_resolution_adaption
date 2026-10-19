@@ -20,6 +20,7 @@ COMMANDS={
     'validate-tablet-theme':'validate_tablet_theme',
     'eval-batch':'eval_batch',
     'feedback-loop':'feedback_loop',
+    'layout-lab':'layout_lab',
 }
 
 

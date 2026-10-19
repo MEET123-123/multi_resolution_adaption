@@ -44,6 +44,14 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
     name='anchor-theme-layout-v1'
     allow_shape_reuse=False
 
+    def propose_group_boxes(self, ir, desired, source, target, context):
+        """Optional soft group preferences; required solver contracts still apply.
+
+        Override this hook for learned/custom placement. Boxes use target logical
+        coordinates. Do not change the IR, source state, or fixed transforms.
+        """
+        return desired
+
     def finalize_device(self,project,device):
         from multires_app.layout.layout_quality import finalize_anchor_device
         finalize_anchor_device(project,device)
@@ -250,6 +258,7 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                     if a and b and abs(a[axis]+f*a[size]-b[axis]-f*b[size])>.01:return False
                 return True
             ir['spatialAlignments']=[r for r in ir['spatialAlignments'] if persistent(r)]
+        desired=self.propose_group_boxes(ir,desired,source,target,context)
         separations=collision_directions(roots,desired,0)
         if options.get('inferScreenRelations',True) and not options.get('groups'):
             # No source-disjoint relation can mean an intentional overlay.
@@ -358,4 +367,6 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                                               'centerReferenceMembers':g.get('centerReferenceMembers'),
                                               'preferredScale':g.get('preferredScale')} for g in ir['groups']],
                                    'frozenIds':sorted(fixed),'reviewRequired':True}
+        if 'layoutProposal' in context:
+            context['adaptationPlan']['layoutProposal']=copy.deepcopy(context['layoutProposal'])
         return output

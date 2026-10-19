@@ -12,6 +12,8 @@
 - [布局美学评价与迭代优化](guides/AESTHETICS.md)
 - [批量评测、badcase 归因与反向优化](guides/EVAL_AND_BADCASE.md)
 - [可插拔评测闭环：居中保持、ReDeCheck 关系图与固定回归](guides/FEEDBACK_LOOP.md)
+- [Qwen3-VL 布局微调 MVP：mock、批量标注与真实配对接口](guides/QWEN_LAYOUT_MVP.md)
+- [模型 MVP 接口审计](guides/IMPLEMENTATION_AUDIT.md) / [缓存数据流水线](guides/DATA_PIPELINE_PLAN.md)
 - [九宫格锚点、容器与约束求解](guides/ANCHOR_LAYOUT.md)
 - [交互状态与变量变化的数据模型](guides/INTERACTION_STATE_MODEL.md)
 - [布局 JSON 微调与参考图匹配](guides/LAYOUT_REFINEMENT.md)
@@ -23,6 +25,7 @@
 
 ## 修复与验证报告
 
+- [Qwen3-VL mock 微调：实测结果、约束检查与质量门禁](reports/QWEN_MVP_RESULTS.md)
 - [自动评测反馈闭环：全量基线、修复候选与资源控制](reports/FEEDBACK_LOOP_RESULTS.md)
 
 - [美学评价与真实主题迭代结果](reports/AESTHETICS_RESULTS.md)

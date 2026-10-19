@@ -1,0 +1,12 @@
+{
+  "reviewer": "replace-with-your-name",
+  "pairs": [
+    {
+      "id": "sample-id-from-samples.jsonl",
+      "requestKey": "requestKey-from-samples.jsonl",
+      "targetReferenceImage": "designer/tablet-reference.png",
+      "layoutJson": "designer/tablet-layout.json",
+      "notes": "Same source scene/state; group IDs must correspond to the script-derived sample."
+    }
+  ]
+}

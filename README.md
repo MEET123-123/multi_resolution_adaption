@@ -58,6 +58,7 @@ multi-res/
 | 看所有设计与使用文档 | [文档导航](docs/README.md) |
 | 做批量评测与 badcase 归因 | [批量评测与反向优化](docs/guides/EVAL_AND_BADCASE.md)、`multires.py tools eval-batch` |
 | 接通评测、人工反馈和候选回归闭环 | [可插拔反馈引擎](docs/guides/FEEDBACK_LOOP.md)、`multires.py tools feedback-loop` |
+| 用 mock 验证 Qwen3-VL 布局微调与批量标注 | [模型 MVP](docs/guides/QWEN_LAYOUT_MVP.md)、`multires.py tools layout-lab` |
 | 看在线服务及当前限制 | [服务说明](docs/guides/SAAS_READINESS.md) |
 | 找目录整理前的文件 | [目录整理与迁移记录说明](docs/ORGANIZATION.md) |
 
