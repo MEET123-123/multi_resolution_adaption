@@ -125,14 +125,14 @@ def build_ir(components, viewport, context, options):
                          'visible_alpha_bbox':None,'bbox_provenance':'source same-state script geometry; alpha contour not inferred',
                          'asset_types':sorted({context.get('assets',{}).get(e.get('asset'),{}).get('kind','unknown') for e in c.get('elements',[])}),
                          'allow_stack': c.get('allowSpatialStack', False), 'canonical_group_id': c['id'],
-                         'atomic': True, 'special': c['role'] in special})
+                         'atomic': True, 'special': c['role'] in special,'pointerEffect':c.get('pointerEffect',False)})
     by_id = {e['id']: e for e in elements}; ordinary = [e for e in elements if not e['special']]
     ungrouped=set(options.get('ungroupedIds',[]))|set(context.get('nativeGlyphResourceScales',{}))|set(context.get('sharedResourceScales',{}))|{e['id'] for e in ordinary if e.get('cornerAttachment')}
     from multires_app.layout.screen_relations import footer_rails,horizontal_attachment
     authored_members={mid for g in options.get('groups',[]) for mid in g.get('members',[])}
     if options.get('inferScreenRelations',True):
         for e in elements:
-            if not e['layout'] and e['id'] not in authored_members and e['role'] not in {'background','gesture-layer','interaction-layer'}:
+            if not e['layout'] and not e.get('pointerEffect') and e['id'] not in authored_members and e['role'] not in {'background','gesture-layer','interaction-layer'}:
                 e['horizontalAttachment']=horizontal_attachment(e['source_edge_bbox'],viewport,e['source_visual_bbox'])
         # Edge atoms keep their own roots instead of inheriting an interior
         # container's centered origin. Their internal image/button binding stays.

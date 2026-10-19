@@ -264,7 +264,9 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
             cid=e['id'];b=e['current_bbox']
             if cid in fixed:continue
             if e['special']:
-                if e['role']=='background':
+                if e.get('pointerEffect'):
+                    output[cid]={'sx':1.,'sy':1.,'tx':0.,'ty':0.}
+                elif e['role']=='background':
                     backdrop=context.get('backgroundBounds',{}).get(cid,b)
                     # Preserve the authored crop/focal position independently
                     # on each axis (centered x may coexist with top-aligned y).

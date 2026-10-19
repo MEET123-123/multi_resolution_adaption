@@ -13,11 +13,12 @@ _CACHE_OWNER=None
 def component_frame_bounds(project,layout):
     """Authored bitmap/control frames at the sampled pose, without alpha trim.
 
-    Edge intent follows the settled source frame, not an animation's canonical
-    first-frame canvas, which can be translated relative to the visible pose.
+    Finite entry effects use the settled pose. Autonomous loops use their
+    first-frame reference, so a playback phase cannot change the edge anchor.
     """
     followers={uid for c in project['components'] for uid in c.get('layoutFollowers',[])};groups={}
-    for row in layout.get('rows',[]):
+    from multires_app.media.media_layout import constraint_rows
+    for row in constraint_rows(project,layout):
         uid=project['nodeOrder'][row[0]];node=project['model']['nodes'][uid];cid=project['nodeComponents'].get(uid)
         if not cid or node['tag'] in {'Group','Button'} or uid in followers or row[5]<=0 or min(row[3:5])<=0:continue
         groups.setdefault(cid,[]).append(dict(zip(('x','y','w','h'),row[1:5])))

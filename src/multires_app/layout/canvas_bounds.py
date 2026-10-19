@@ -8,11 +8,12 @@ def intersects(b, viewport):
 
 
 def stable_resources(project, layout, source_layout):
+    from multires_app.media.media_layout import constraint_rows
     viewport=project.get('sourceDevice',{}).get('viewport',{})
     if not viewport:return []
     inactive=set(layout.get('mediaLayout',{}).get('inactiveSceneNodeIndices',[]))
     active={}
-    for row in (source_layout or {}).get('rows',[]):
+    for row in constraint_rows(project,source_layout or {}):
         b=dict(zip(('x','y','w','h'),row[1:5]))
         if row[5]>0 and intersects(b,viewport):
             # Constrain only the portion visible on the authored canvas. Making
@@ -22,11 +23,12 @@ def stable_resources(project, layout, source_layout):
     result=[]
     occurrences={}
     roles={c['id']:c['role'] for c in project['components']}
-    for row in layout.get('rows',[]):
+    pointer_effects={c['id'] for c in project['components'] if c.get('pointerEffect')}
+    for row in constraint_rows(project,layout):
         uid=project['nodeOrder'][row[0]];cid=project['nodeComponents'].get(uid)
         b=dict(zip(('x','y','w','h'),row[1:5]))
         index=occurrences.get(row[0],0);occurrences[row[0]]=index+1
-        if (row[0] in inactive or row[0] not in active or row[5]<=0 or roles.get(cid) in {'background','gesture-layer'} or
+        if (row[0] in inactive or row[0] not in active or row[5]<=0 or cid in pointer_effects or roles.get(cid) in {'background','gesture-layer'} or
             project['model']['nodes'][uid]['tag']=='Group' or min(b['w'],b['h'])<=0 or
             not all(math.isfinite(v) for v in b.values())):continue
         source=active[row[0]][min(index,len(active[row[0]])-1)]

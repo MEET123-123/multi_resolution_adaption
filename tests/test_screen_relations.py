@@ -6,6 +6,37 @@ from tests.test_anchor_layout import SOURCE,comp,ctx
 
 
 class ScreenRelationsTests(unittest.TestCase):
+    def test_interior_motion_keeps_sampled_stable_canvas_bounds(self):
+        from multires_app.media.media_layout import constraint_rows
+        first=[0,20,20,60,40,1,-1,'',0];sample=[0,30,25,60,40,1,-1,'',0]
+        layout={'rows':[sample],'mediaLayout':{'rows':[first]}}
+        p={'model':{'nodes':{'art':{'tag':'Image','attributes':{'x':'20+sin(#time)*10'},'children':[],'parent':None}},'variables':{}},
+           'nodeOrder':['art'],'sourceDevice':{'viewport':{'width':100,'height':200},'layouts':[layout]}}
+        self.assertEqual(constraint_rows(p,layout),[sample])
+
+    def test_looping_crop_uses_one_first_frame_even_when_replay_phases_differ(self):
+        from multires_app.layout.screen_relations import horizontal_attachment_errors
+        from multires_app.layout.canvas_bounds import stable_resources
+        from multires_app.layout.visual_geometry import component_frame_bounds
+        def row(x):return [0,x,20,60,40,1,-1,'',0]
+        p={'components':[{'id':'art','name':'art','role':'decoration','members':['image']}],
+           'nodeOrder':['image'],'nodeComponents':{'image':'art'},
+           'model':{'nodes':{'image':{'tag':'Image','attributes':{'x':'80+sin(#time)*10'},'children':[],'parent':None}},'variables':{}},
+           'sourceDevice':{'viewport':{'width':100,'height':200},'layouts':[]}}
+        reference={'nodeIndices':[0],'rows':[row(80)]}
+        source={'state':'a','rows':[row(70)],'mediaLayout':reference}
+        p['sourceDevice']['layouts']=[source]
+        target={'state':'a','rows':[row(90)],'mediaLayout':reference,
+                'transforms':{'art':{'sx':.5,'sy':.5,'tx':50,'ty':0}},
+                'adaptationPlan':{'horizontalEdgeAttachments':{'art':{'edge':'right','margin':-40,'marginScale':'resource'}},
+                                  'safeRegion':{'x':0,'y':0,'w':100,'h':100}}}
+        device={'viewport':{'width':100,'height':100},'layouts':[target]}
+        self.assertEqual(component_frame_bounds(p,target)['art']['x'],80)
+        self.assertEqual(stable_resources(p,target,source)[0]['rect'],{'x':80,'y':20,'w':20,'h':40})
+        self.assertFalse(horizontal_attachment_errors(p,device,target))
+        target['transforms']['art']['tx']+=3
+        self.assertTrue(horizontal_attachment_errors(p,device,target))
+
     def test_reused_crop_anchor_preserves_autonomous_motion_and_still_detects_drift(self):
         from multires_app.layout.screen_relations import horizontal_attachment_errors
         def row(x):return [0,x,20,60,40,1,-1,'',0]

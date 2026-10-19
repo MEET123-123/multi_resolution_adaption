@@ -560,4 +560,10 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
         finalize(project,device)
     from multires_app.media.media_layout import retain_waiting_components
     retain_waiting_components(project,device)
+    # Native pointer feedback is positioned by live input, not by a sampled
+    # scene's last touch. The identity preserves that binding after finalize.
+    for c in project['components']:
+        if not c.get('pointerEffect'):continue
+        for layout in device['layouts']:
+            if c['id'] in layout['transforms']:layout['transforms'][c['id']]=dict(IDENTITY)
     return device["layoutClusters"]

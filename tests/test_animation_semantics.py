@@ -69,6 +69,33 @@ class AnimationSemanticsTests(unittest.TestCase):
                     self.assertIn(index,[r[0] for r in layout_rows(p,after)])
                     self.assertIn(name,scene_animation_names(model))
 
+    def test_pointer_feedback_keeps_live_touch_binding_and_is_not_a_layout_block(self):
+        self.manifest.write_text('''<Lockscreen screenWidth="1080">
+        <Var name="pointerX" expression="#touch_x"/><Var name="pointerY" expression="#touch_y"/>
+        <Var name="choice" expression="0"/>
+        <Rectangle x="100" y="600" w="300" h="100"/>
+        <Group name="feedback" x="#pointerX-20" y="#pointerY-20">
+          <Rectangle w="80" h="80"/>
+        </Group>
+        <Button x="100" y="600" w="300" h="100"><Trigger action="up">
+          <VariableCommand name="choice" expression="1-#choice"/>
+        </Trigger></Button></Lockscreen>''',encoding='utf8')
+        out=self.root/'pointer'
+        create_project(self.root,{'resolutionPx':{'width':1080,'height':2160}},
+                       {'profiles':[{'id':'wide','resolutionPx':{'width':1600,'height':1000},
+                                     'orientations':['landscape']}]},out,max_states=8,max_depth=3)
+        p=json.loads((out/'project.json').read_text(encoding='utf8'))
+        effects=[c for c in p['components'] if c.get('pointerEffect')]
+        self.assertEqual(len(effects),1);cid=effects[0]['id']
+        for layout in p['devices'][0]['layouts']:
+            if cid in layout['transforms']:
+                self.assertEqual(layout['transforms'][cid],{'sx':1.,'sy':1.,'tx':0.,'ty':0.})
+        native=self.root/'native-pointer';path=native/'unlock/lockscreen/manifest.xml'
+        path.parent.mkdir(parents=True);export_script(p,p['devices'][0]['profile']['id'],path)
+        rt=initialize(load_model(native),1080,675);rt.system.update(touch_x=400,touch_y=300);rt.cache.clear()
+        feedback=next(e for e in rt.snapshot({}) if e['id'].endswith('/Group[1]/Rectangle[1]'))
+        self.assertEqual(feedback['rect']['x'],380);self.assertEqual(feedback['rect']['y'],280)
+
     def test_reactive_animation_is_reached_through_a_user_assignment(self):
         model=self.model('alpha','through_reaction',reactive=True)
         self.assertIn('through_reaction',scene_animation_names(model))

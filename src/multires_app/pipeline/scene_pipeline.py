@@ -168,9 +168,14 @@ def infer_components(model, source_profile, assets, initial_state, overrides=Non
         owner=boundary(node["id"],root_owners)
         if owner:component_index[root_owners[owner]]["members"].append(node["id"])
     components=[c for c in components if any(nodes[uid]['tag']!='Group' for uid in c['members'])]
+    from multires_app.interaction.animation_semantics import pointer_effect_ids
+    pointer_ids=pointer_effect_ids(model)
     for c in components:
         c['bindingButtons']=[b['button'] for b in bindings['bindings'] if b['button'] in c['members']]
         drawable=[uid for uid in c['members'] if nodes[uid]['tag'] not in {'Group','Button'}]
+        if drawable and set(drawable)<=pointer_ids and not c['bindingButtons'] and not c.get('layout'):
+            c['role']='decoration';c['pointerEffect']=True
+            c['inference']='native pointer feedback follows current touch coordinates on both axes'
         if not drawable and c['role']!='gesture-layer':c['role']='interaction-layer'
         c['allowSpatialStack']=all(nodes[r]['tag']=='Group' for r in c['roots'] if nodes[r]['tag']!='Button')
         if drawable and any(nodes[r]['tag']=='Group' for r in c['roots']):

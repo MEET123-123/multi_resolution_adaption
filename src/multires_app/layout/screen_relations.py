@@ -63,7 +63,7 @@ def horizontal_attachment_errors(project,device,layout,tolerance=.1):
             extent=plan.get('safeRegion',{}).get('w',device['viewport']['width'])
             for cid,frame in component_frame_bounds(project,source).items():
                 c=components[cid]
-                if c.get('layout') or c.get('cornerAttachment') or cid in authored or c['role'] in {'background','gesture-layer','interaction-layer'}:continue
+                if c.get('layout') or c.get('cornerAttachment') or c.get('pointerEffect') or cid in authored or c['role'] in {'background','gesture-layer','interaction-layer'}:continue
                 intent=horizontal_attachment(frame,vp,visuals.get(cid))
                 if intent:
                     if intent.get('marginScale')!='resource':intent['targetMargin']=intent['margin']*extent/vp['width']

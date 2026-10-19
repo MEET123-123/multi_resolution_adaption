@@ -42,6 +42,75 @@ def temporal_ids(model):
     return result
 
 
+def autonomous_position_ids(model):
+    """Looping motion uses its reference pose for layout and crop inference.
+
+    Settled human poses and finite entry/exit animations keep their sampled
+    geometry. Only an autonomous position timeline can use this shortcut.
+    """
+    from multires_app.engine.scene_engine import REF, VISUAL
+    nodes=model.get('nodes',{});pages=page_animation_names(model) if model.get('variables') else set()
+    def looping(node):
+        a=node.get('attributes',{})
+        return a.get('loop','false' if a.get('repeat')=='1' else 'true').lower()!='false'
+    names={'time'}
+    names.update(name for name,node in model.get('variables',{}).items() if name not in pages and
+                 any(nodes[c]['tag']=='VariableAnimation' and looping(nodes[c]) for c in node['children']))
+    human_names=set(pages)
+    while True:
+        expanded=human_names|{name for name,node in model.get('variables',{}).items() if
+                              set(REF.findall(node['attributes'].get('expression','')))&human_names}
+        if expanded==human_names:break
+        human_names=expanded
+    while True:
+        expanded=names|{name for name,node in model.get('variables',{}).items() if name not in pages and
+                        set(REF.findall(node['attributes'].get('expression','')))&names}
+        if expanded==names:break
+        names=expanded
+    commanded={c['attributes'].get('target','')[:-10] for t in model.get('triggers',[]) for c in t['commands']
+               if c['tag']=='Command' and c['attributes'].get('target','').endswith('.animation')}
+    result=set()
+    for uid,node in nodes.items():
+        if node['tag'] not in VISUAL or node['tag']=='Group':continue
+        owner=uid;automatic=False;human=False
+        while owner:
+            n=nodes[owner]
+            attrs=n.get('attributes',{})
+            refs=set().union(*(set(REF.findall(attrs.get(k,''))) for k in ('x','y')))
+            geometry_refs=set().union(*(set(REF.findall(attrs.get(k,''))) for k in ('x','y','w','h','width','height','size','space')))
+            human |= bool(geometry_refs&human_names) or attrs.get('name') in commanded
+            human |= any(nodes[c]['tag'] in {'PositionAnimation','SizeAnimation'} and not looping(nodes[c]) for c in n.get('children',[]))
+            automatic |= bool(refs&names) or any(nodes[c]['tag']=='PositionAnimation' and looping(nodes[c]) for c in n.get('children',[]))
+            owner=n.get('parent')
+        if automatic and not human:result.add(uid)
+    return result
+
+
+def constraint_rows(project,layout):
+    """A looping crop keeps one reference edge, independent of sample time.
+
+    Interior content retains sampled stable bounds for containment. Replacing
+    those with an entry frame could erase a settled human size or position.
+    """
+    model=project['model'];cached=project.get('_autonomousPositionIds')
+    if cached is None:
+        cached=project['_autonomousPositionIds']=sorted(autonomous_position_ids(model))
+    sources=project.get('sourceDevice',{});layouts=sources.get('layouts',[])
+    cache_key=(id(layouts),len(layouts))
+    crops=project.get('_autonomousCropIndices')
+    if not crops or crops[0]!=cache_key:
+        candidates={i for i,uid in enumerate(project['nodeOrder']) if uid in cached}
+        width=sources.get('viewport',{}).get('width',0);indices=set()
+        for source in layouts:
+            for row in source.get('mediaLayout',{}).get('rows',[]):
+                if row[0] in candidates and (row[1]<0<row[1]+row[3]<width or 0<row[1]<width<row[1]+row[3]):
+                    indices.add(row[0])
+        project['_autonomousCropIndices']=(cache_key,sorted(indices))
+    else:indices=set(crops[1])
+    refs={r[0]:r for r in layout.get('mediaLayout',{}).get('rows',[]) if r[0] in indices}
+    return [refs.get(r[0],r) for r in layout.get('rows',[])]
+
+
 def frame_index_names(model):
     """Only asset playback selectors, not clocks that switch whole UI pages."""
     from multires_app.engine.scene_engine import REF

@@ -43,6 +43,22 @@ class MediaLayoutTests(unittest.TestCase):
     def test_time_sequence_detected_but_user_variant_and_glyphs_not(self):
         self.assertEqual(temporal_ids(self.model),{self.movie})
 
+    def test_autonomous_position_reference_excludes_finite_and_human_motion(self):
+        from multires_app.media.media_layout import autonomous_position_ids
+        lock=self.source/'unlock/lockscreen/manifest.xml'
+        lock.write_text('''<Lockscreen screenWidth="1080">
+          <Var name="phase"><VariableAnimation><AniFrame time="0" value="0"/><AniFrame time="1000" value="6"/></VariableAnimation></Var>
+          <Var name="drawer"><VariableAnimation><AniFrame time="0" value="0"/><AniFrame time="1000" value="1080"/></VariableAnimation></Var>
+          <Image name="orbit" x="100+cos(#phase)*50" src="seq_0.png"/>
+          <Image name="human-size" x="100+cos(#phase)*50" w="100+#drawer" src="seq_0.png"/>
+          <Image name="intro" src="seq_0.png"><PositionAnimation loop="false"><Position time="0" x="-300"/><Position time="1000" x="0"/></PositionAnimation></Image>
+          <Image name="panel" x="#drawer" src="seq_0.png"/>
+          <Button><Triggers><Trigger action="up"><Command target="drawer.animation" value="play"/></Trigger></Triggers></Button>
+        </Lockscreen>''',encoding='utf8')
+        model=load_model(self.source)
+        names={model['nodes'][uid]['attributes'].get('name') for uid in autonomous_position_ids(model)}
+        self.assertEqual(names,{'orbit'})
+
     def test_continuous_phase_cannot_change_export_layout_guard(self):
         from xml.etree import ElementTree as ET
         from multires_app.engine.scene_engine import indexed_tree

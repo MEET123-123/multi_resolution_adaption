@@ -9,6 +9,27 @@ STATE_POLICY={'version':2,'classification':'script-dependencies-and-human-rules'
               'initialization':'preserve-stopped-and-assigned-values','media':'first-frame-affine',
               'waiting':'retain-source-edge-outside-target-canvas'}
 
+
+def pointer_effect_ids(model):
+    """Visual feedback attached to the current pointer on both axes."""
+    from multires_app.engine.scene_engine import REF,VISUAL
+    from multires_app.interaction.interaction_ir import dependencies
+    _,transitive=dependencies(model)
+    def depends(expression,name):
+        refs=set(REF.findall(expression))
+        return name in refs or any(name in transitive.get(ref,set()) for ref in refs)
+    result=set()
+    for uid,node in model['nodes'].items():
+        if node['tag'] not in VISUAL:continue
+        owner=uid
+        while owner:
+            n=model['nodes'][owner];a=n['attributes']
+            if depends(a.get('x',''),'touch_x') and depends(a.get('y',''),'touch_y'):
+                result.add(uid);break
+            owner=n['parent']
+    return result
+
+
 def scene_animation_names(model):
     """Interaction-driven visual poses, including opacity and individual images.
 
