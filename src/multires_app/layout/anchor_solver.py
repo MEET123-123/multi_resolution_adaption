@@ -102,7 +102,7 @@ def solve(ir, local, region, desired, frozen=None, constraints=None, min_scale=.
                 else:add(expr==0,gid+':edge-'+intent['edge'],provenance='preserve authored horizontal screen attachment')
             add(expr==0,gid+':screen-'+intent['edge'],'strong',100,'source screen edge attachment')
         for axis in g.get('centerAxes',[]):
-            if gid in rail_roots:continue
+            if gid in rail_roots and axis not in g.get('centerRequiredAxes',[]):continue
             size='w' if axis=='x' else 'h'
             visual=g.get('_center_bounds',{'x':0,'y':0,**local[gid]['size']})
             add(b[axis]+(visual[axis]+visual[size]/2)*s==region[axis]+region[size]/2,gid+':screen-center-'+axis,
@@ -171,18 +171,25 @@ def solve(ir, local, region, desired, frozen=None, constraints=None, min_scale=.
         if not relation.get('separationOnly'):
             add(distance==relation['preferredGap'],relation['id']+':preferred','strong',relation.get('preferenceWeight',20),relation['provenance'])
     for ri,rail in enumerate(ir.get('screenDistributions',[])):
-        ids=rail['roots'];n=len(ids);s=variables[ids[0]][2];first=boxes[ids[0]];last=boxes[ids[-1]]
+        ids=rail['roots'];n=len(ids);s=variables[ids[0]][2]
+        def horizontal(gid):
+            b=boxes[gid];frame=groups[gid].get('_center_bounds')
+            if rail.get('horizontalGeometry')=='optical' and frame:
+                scale=variables[gid][2]
+                return {**b,'x':b['x']+frame['x']*scale,'w':frame['w']*scale}
+            return b
+        first=horizontal(ids[0]);last=horizontal(ids[-1])
         def rail_add(expr,label):add(expr,'rail:'+str(ri)+':'+label,'strong',100,rail['provenance'])
         for i,gid in enumerate(ids):
-            b=boxes[gid]
+            b=horizontal(gid);vertical=boxes[gid]
             rail_add(variables[gid][2]==s,'scale:'+gid)
-            rail_add(b['y']+b['h']/2==region['y']+region['h']-rail['targetBottomMargin']-rail['referenceHalfHeight']*s,'bottom:'+gid)
+            rail_add(vertical['y']+vertical['h']/2==region['y']+region['h']-rail['targetBottomMargin']-rail['referenceHalfHeight']*s,'bottom:'+gid)
             if rail['mode']=='equal-cells':
                 rail_add(b['x']+b['w']/2==region['x']+region['w']*(i+.5)/n,'cell:'+gid)
             elif rail['mode']=='equal-centers':
                 rail_add(b['x']+b['w']/2==(first['x']+first['w']/2)*(1-i/(n-1))+(last['x']+last['w']/2)*i/(n-1),'center:'+gid)
             elif i>=2:
-                prev=boxes[ids[i-1]];a=boxes[ids[0]];second=boxes[ids[1]]
+                prev=horizontal(ids[i-1]);a=horizontal(ids[0]);second=horizontal(ids[1])
                 rail_add(b['x']-prev['x']-prev['w']==second['x']-a['x']-a['w'],'gap:'+gid)
         if rail['mode']!='equal-cells':
             rail_add(first['x']==region['x']+rail['targetLeftMargin'],'left')

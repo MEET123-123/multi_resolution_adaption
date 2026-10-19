@@ -1,0 +1,15 @@
+{
+  "rulesetVersion": "1.0",
+  "centerTolerance": 0.001,
+  "verifyAssetHashes": true,
+  "replaySteps": 12,
+  "passSamples": 10,
+  "seed": 0,
+  "responsiveSteps": 5,
+  "responsiveBudget": 13,
+  "responsiveFraction": 0.08,
+  "responsiveAxes": ["width", "height"],
+  "responsiveStates": 1,
+  "responsiveDevices": 1,
+  "breakpoints": []
+}

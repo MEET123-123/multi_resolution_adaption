@@ -18,6 +18,8 @@ COMMANDS={
     'audit-assets':'audit_assets',
     'release-readiness':'release_readiness',
     'validate-tablet-theme':'validate_tablet_theme',
+    'eval-batch':'eval_batch',
+    'feedback-loop':'feedback_loop',
 }
 
 

@@ -304,7 +304,20 @@ def build_ir(components, viewport, context, options):
             g['centerAxes']=[axis for axis,size,extent in [('x','w',viewport['width']),('y','h',viewport['height'])]
                                         if 0<=b[axis] and b[axis]+b[size]<=extent+.1 and
                                         abs(b[axis]+b[size]/2-extent/2)<=max(2.,extent*.015)]
-            g['centerRequiredAxes']=[axis for axis in g['centerAxes'] if abs(b[axis]+b['w' if axis=='x' else 'h']/2-viewport['width' if axis=='x' else 'height']/2)<=.01 and not any(mid in context.get('fixedTransforms',{}) for mid in g['members'])]
+            # Optical centering often differs by a few pixels due to glyphs or
+            # alpha padding. Preserve that design intent as a constraint, not
+            # only when a floating point center is exactly equal to the canvas.
+            def leaf_ids(gid):
+                return [cid for mid in index[gid].get('centerReferenceMembers',index[gid]['members'])
+                        for cid in (leaf_ids(mid) if mid in index else [mid])]
+            ids=leaf_ids(g['id'])
+            from multires_app.layout.center_intent import centered_axes
+            for samples in context.get('flowSamples',[]):
+                source_sample=samples[0]
+                if all(cid in source_sample for cid in ids):
+                    stable=box_union([source_sample[cid] for cid in ids])
+                    g['centerAxes']=[axis for axis in g['centerAxes'] if axis in centered_axes(stable,viewport)]
+            g['centerRequiredAxes']=[axis for axis in g['centerAxes'] if not any(mid in context.get('fixedTransforms',{}) for mid in ids)]
             if corner:g['centerAxes']=[];g['centerRequiredAxes']=[]
             g['centerAxes']=[axis for axis in g['centerAxes'] if g['screenAttachment'].get(axis,{}).get('priority')!='required']
             g['centerRequiredAxes']=[axis for axis in g['centerRequiredAxes'] if axis in g['centerAxes']]

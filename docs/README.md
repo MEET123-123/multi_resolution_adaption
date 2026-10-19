@@ -10,6 +10,8 @@
 - [HarmonyOS 5+：逐文件改造、接口草案与验收清单](guides/HARMONYOS5_IMPLEMENTATION_PLAN.md)
 - [保留布局与组件重排：代码化适配流程](guides/ADAPTATION_WORKFLOW.md)
 - [布局美学评价与迭代优化](guides/AESTHETICS.md)
+- [批量评测、badcase 归因与反向优化](guides/EVAL_AND_BADCASE.md)
+- [可插拔评测闭环：居中保持、ReDeCheck 关系图与固定回归](guides/FEEDBACK_LOOP.md)
 - [九宫格锚点、容器与约束求解](guides/ANCHOR_LAYOUT.md)
 - [交互状态与变量变化的数据模型](guides/INTERACTION_STATE_MODEL.md)
 - [布局 JSON 微调与参考图匹配](guides/LAYOUT_REFINEMENT.md)
@@ -20,6 +22,8 @@
 - [交互场景、组件重排与主题回写](guides/SCENE_WORKFLOW.md)
 
 ## 修复与验证报告
+
+- [自动评测反馈闭环：全量基线、修复候选与资源控制](reports/FEEDBACK_LOOP_RESULTS.md)
 
 - [美学评价与真实主题迭代结果](reports/AESTHETICS_RESULTS.md)
 - [对齐关系修复与全量验证](reports/ALIGNMENT_RESULTS.md)

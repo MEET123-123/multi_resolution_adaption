@@ -20,6 +20,7 @@ multi-res/
 │  ├─ media/            序列帧、视频与资源缩放
 │  ├─ preview/          原始/适配预览、交互服务与页面资源
 │  ├─ export/           XML 精确反写
+│  ├─ evaluation/       逐场景评价、证据、Badcase、候选门禁与固定回归
 │  ├─ service/          在线服务、客户隔离、任务队列
 │  └─ tools/            批量转换、重新布局、打包与维护
 ├─ theme/               真实主题、已有适配结果与专题样例
@@ -55,6 +56,8 @@ multi-res/
 | 找适配后的 XML 和 HWT | `theme/adaptation/<主题编号>/scenes/scripts/`、`packages/` |
 | 看半岛日记最新修复 | [屏外面板与交互修复](docs/reports/BANDAO_DRAWER_RESULTS.md) |
 | 看所有设计与使用文档 | [文档导航](docs/README.md) |
+| 做批量评测与 badcase 归因 | [批量评测与反向优化](docs/guides/EVAL_AND_BADCASE.md)、`multires.py tools eval-batch` |
+| 接通评测、人工反馈和候选回归闭环 | [可插拔反馈引擎](docs/guides/FEEDBACK_LOOP.md)、`multires.py tools feedback-loop` |
 | 看在线服务及当前限制 | [服务说明](docs/guides/SAAS_READINESS.md) |
 | 找目录整理前的文件 | [目录整理与迁移记录说明](docs/ORGANIZATION.md) |
 

@@ -170,8 +170,10 @@ def footer_rails(elements, viewport):
         elif uniform(gaps):mode='equal-gaps'
         else:continue
         equal_cells=mode=='equal-centers' and max(abs(c/w-(i+.5)/len(row)) for i,c in enumerate(centers))<=.035
+        optical=[e.get('source_visual_bbox',e['bbox']) for e in row]
         rails.append({'members':[e['id'] for e in row],'mode':'equal-cells' if equal_cells else mode,
-                      'leftMargin':bs[0]['x'],'rightMargin':w-bs[-1]['x']-bs[-1]['w'],
+                      'horizontalGeometry':'optical',
+                      'leftMargin':optical[0]['x'],'rightMargin':w-optical[-1]['x']-optical[-1]['w'],
                       'bottomMargin':h-max(b['y']+b['h'] for b in bs),
                       'centerBottomMargin':h-sum(b['y']+b['h']/2 for b in bs)/len(bs),
                       'provenance':'aligned footer peers with uniform source spacing','confidence':.92})

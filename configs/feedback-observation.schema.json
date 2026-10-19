@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Multires feedback observation v1",
+  "type": "object",
+  "required": ["schema", "id", "inputIdentity", "project", "device", "state", "rule", "status", "severity", "confidence", "members", "evidence", "plugin", "trace"],
+  "properties": {
+    "schema": {"const": "multires-feedback/1"},
+    "id": {"type": "string", "pattern": "^[0-9a-f]{24}$"},
+    "inputIdentity": {"type": "string"},
+    "status": {"enum": ["pass", "fail", "review", "unknown", "not_applicable"]},
+    "severity": {"enum": ["P0", "P1", "P2"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "residual": {"type": "number", "minimum": 0},
+    "members": {"type": "array", "items": {"type": "string"}},
+    "trace": {"type": "array"},
+    "evidence": {"type": "object"},
+    "plugin": {"type": "object", "required": ["name", "version"]},
+    "artifacts": {"type": "object", "additionalProperties": {"type": "string"}}
+  }
+}

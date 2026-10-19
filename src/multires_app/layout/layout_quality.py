@@ -69,11 +69,12 @@ def screen_relation_errors(desc,transforms,plan):
     errors=[];rail_roots={gid for r in plan.get('screenDistributions',[]) for gid in r['roots']}
     for gid,g in groups.items():
         q=resolve(gid);ref=g['sourceBounds']
-        if not q or gid in rail_roots:continue
+        if not q:continue
         if g.get('cornerLocalBounds'):
             frame=g['cornerLocalBounds'];scale=scale_of(gid)
             if scale is not None:q={'x':q['x']+frame['x']*scale,'y':q['y']+frame['y']*scale,'w':frame['w']*scale,'h':frame['h']*scale}
         for axis,intent in g.get('screenAttachment',{}).items():
+            if gid in rail_roots:continue
             size='w' if axis=='x' else 'h';scale=scale_of(gid)
             if scale is None:continue
             edge_box=q
@@ -87,11 +88,12 @@ def screen_relation_errors(desc,transforms,plan):
             visual=visual_box(gid) or q
             errors.append(abs(visual[axis]+visual[size]/2-region[axis]-region[size]/2))
     for r in plan.get('screenDistributions',[]):
-        bs=[resolve(gid) for gid in r['roots']]
+        bs=[visual_box(gid) if r.get('horizontalGeometry')=='optical' else resolve(gid) for gid in r['roots']]
         if any(b is None for b in bs):continue
         n=len(bs);scale=scale_of(r['roots'][0])
         if scale is None:continue
-        errors.extend(abs(region['y']+region['h']-b['y']-b['h']/2-r['targetBottomMargin']-r['referenceHalfHeight']*scale) for b in bs)
+        vertical=[resolve(gid) for gid in r['roots']]
+        errors.extend(abs(region['y']+region['h']-b['y']-b['h']/2-r['targetBottomMargin']-r['referenceHalfHeight']*scale) for b in vertical if b)
         if r['mode']=='equal-cells':errors.extend(abs(b['x']+b['w']/2-region['x']-region['w']*(i+.5)/n) for i,b in enumerate(bs))
         else:
             errors.extend([abs(bs[0]['x']-region['x']-r['targetLeftMargin']),abs(region['x']+region['w']-bs[-1]['x']-bs[-1]['w']-r['targetRightMargin'])])

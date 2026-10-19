@@ -51,11 +51,13 @@ def validate_export(project,device):
             from multires_app.layout.spatial_flow import layout_flows,flow_errors
             failures=flow_errors(layout_flows(project,device,layout),layout['transforms'])
             if failures:raise RequiredConstraintError('source-disjoint resources overlap or lost axis gap: '+str(failures[:1])+'; state='+layout['state'])
-            from multires_app.layout.layout_quality import screen_relation_errors
-            strict={**plan,'screenDistributions':[],'groups':[{**g,'screenAttachment':{},'centerAxes':g.get('centerRequiredAxes',[])} for g in plan.get('groups',[])]}
-            from multires_app.layout.visual_geometry import with_stable_visuals
-            errors=screen_relation_errors(with_stable_visuals(project,layout,describe_layout(project,layout)),layout['transforms'],strict)
-            if any(e>.1 for e in errors):raise RequiredConstraintError('source optical center changed before export; state='+layout['state'])
+        # Centering is an independent contract, including scenes without a
+        # spatial-flow policy (for example a single centered clock group).
+        from multires_app.layout.layout_quality import screen_relation_errors
+        strict={**plan,'screenDistributions':[],'groups':[{**g,'screenAttachment':{},'centerAxes':g.get('centerRequiredAxes',[])} for g in plan.get('groups',[])]}
+        from multires_app.layout.visual_geometry import with_stable_visuals
+        errors=screen_relation_errors(with_stable_visuals(project,layout,describe_layout(project,layout)),layout['transforms'],strict)
+        if any(e>.1 for e in errors):raise RequiredConstraintError('source optical center changed before export; state='+layout['state'])
         for cid,t in layout['transforms'].items():
             if not all(math.isfinite(v) for v in t.values()) or min(t['sx'],t['sy'])<=0:
                 raise RequiredConstraintError('invalid export transform: '+cid)

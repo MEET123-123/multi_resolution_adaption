@@ -150,6 +150,12 @@ python multires.py tools <工具名> <参数>
 
 `python multires.py tools --help` 列出所有可用工具。
 
+### 10. `evaluation/`：从批量验证回到可修复的问题
+
+`core.py` 定义版本化观察、上下文和评价/修复插件接口；`checks.py`、`input_checks.py`、`replay.py` 检查选中布局、源输入和交互；`responsive.py` 记录宽高变化时的关系图；`gate.py` 阻止逐场景退化；`report.py` 生成有预算的图像证据与流式报告；`workflow.py` 连接候选、标注、固定回归与断点恢复。
+
+通过 `python multires.py tools feedback-loop --help` 运行。新布局算法仍使用原来的 `layout_scene` 接口；评价和候选提案可分别替换。详见 [反馈闭环](guides/FEEDBACK_LOOP.md)。
+
 ## 三、真实主题目录怎么读
 
 当前真实主题源包直接在 `theme/` 下；已有项目在 `theme/adaptation/`。为保留项目中记录的路径，本轮没有移动这些大体积数据。
