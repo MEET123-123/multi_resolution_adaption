@@ -71,6 +71,12 @@ python -m venv .venv
 
 维护工具保留原流程和参数。`--layout-only` 不会重新探索交互；修改解释器或交互语义后，可用 `python multires.py tools refresh-interactions --only <项目目录名>` 重新探索并生成布局。重建保留旧输出，完整步骤见 [交互动画规则](guides/INTERACTION_ANIMATION.md)。
 
+## HarmonyOS 5.0 及以上主题
+
+先阅读 [规范与迁移方案](guides/HARMONYOS5_MIGRATION.md) 和 [逐文件改造清单](guides/HARMONYOS5_IMPLEMENTATION_PLAN.md)。当前 `analyze --engine harmonyos-5+` 用于标注分析目标，现有 `scenes` / `export` 生成原包语法下的适配候选；它们尚未实现完整的 5+ 引擎转换和官方工具出包。
+
+文档中的新适配器、目标配置和交付模式属于待实现设计。正式目标需要分别核实规范版本、设备屏幕角色、安全区及官方工程模板，已有 Mock 预览配置不能直接作为原生交付配置。
+
 ## 在线服务
 
 ```powershell

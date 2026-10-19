@@ -43,9 +43,11 @@ flowchart TD
 |---|---|
 | `scene_engine.py` | 读取 XML、计算变量与表达式、解释动画、得到元素几何和显示状态 |
 | `archive_safety.py` | 检查归档路径、大小、嵌套资源等输入边界 |
-| `engine_capabilities.py` | 生成引擎能力与版本风险报告；当前不是完整的鸿蒙 5.0 迁移器 |
+| `engine_capabilities.py` | 生成引擎能力与版本风险报告；后续字段级规则与引擎适配器设计见 [HarmonyOS 5+ 改造清单](guides/HARMONYOS5_IMPLEMENTATION_PLAN.md) |
 
 前一轮的 `atan` 动画角度问题在这一层解决。
+
+当前 `scene_engine.py` 是部分旧版锁屏 XML 的参考解释器。完整的 5+ 引擎迁移还需要目标语义、系统数据、模块路由与官方工具出包，范围见 [规范与迁移方案](guides/HARMONYOS5_MIGRATION.md)。
 
 ### 2. `interaction/`：理解人怎样操作
 

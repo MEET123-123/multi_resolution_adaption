@@ -49,6 +49,7 @@ multi-res/
 |---|---|
 | 加入自己的布局算法 | [算法接入说明](docs/CUSTOM_LAYOUT.md) |
 | 理解交互如何变成布局 | [项目结构与处理流程](docs/PROJECT_STRUCTURE.md) |
+| 规划鸿蒙 5.0 及以上主题适配 | [规范与迁移方案](docs/guides/HARMONYOS5_MIGRATION.md)、[逐文件改造清单](docs/guides/HARMONYOS5_IMPLEMENTATION_PLAN.md) |
 | 修复动画提前出现、连续跳转和时间样式状态 | [通用交互动画规则](docs/guides/INTERACTION_ANIMATION.md) |
 | 修改设备与分辨率 | [设备配置](configs/device-profiles.example.json) |
 | 找适配后的 XML 和 HWT | `theme/adaptation/<主题编号>/scenes/scripts/`、`packages/` |
@@ -61,7 +62,7 @@ multi-res/
 
 - 默认布局算法为 `anchor`，自定义算法接口保留。
 - 浏览器预览和离线校验用于迭代；输出是待验收的适配候选，不能替代鸿蒙原生引擎和真机验证。
-- 鸿蒙 5.0 及以上引擎迁移目前只有初步能力检查，尚未实现完整的命令、系统数据与主题包规范转换。
+- 鸿蒙 5.0 及以上引擎迁移目前只有初步能力检查，尚未实现完整的命令、系统数据与主题包规范转换。已整理 [官方规范依据](docs/reference/HARMONYOS5_SPEC_SOURCES.md) 与 [分阶段实施文档](docs/guides/HARMONYOS5_IMPLEMENTATION_PLAN.md)，其中拟议接口和配置仍待实现。
 - 在线服务目前为受控内测，具体限制见服务文档。
 
 目录整理保留了 `theme/` 下原始主题和生成结果的位置，已有预览链接与源包记录可以继续使用。详细搬迁规则见 [目录整理说明](docs/ORGANIZATION.md)。

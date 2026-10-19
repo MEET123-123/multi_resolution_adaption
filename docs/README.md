@@ -6,6 +6,8 @@
 
 ## 设计与使用
 
+- [HarmonyOS 5.0 及以上：规范对照与迁移方案](guides/HARMONYOS5_MIGRATION.md)
+- [HarmonyOS 5+：逐文件改造、接口草案与验收清单](guides/HARMONYOS5_IMPLEMENTATION_PLAN.md)
 - [保留布局与组件重排：代码化适配流程](guides/ADAPTATION_WORKFLOW.md)
 - [布局美学评价与迭代优化](guides/AESTHETICS.md)
 - [九宫格锚点、容器与约束求解](guides/ANCHOR_LAYOUT.md)
@@ -34,6 +36,7 @@
 
 ## 设计原稿
 
+- [HarmonyOS 5+ 官方规范来源与核对记录（2026-10-19）](reference/HARMONYOS5_SPEC_SOURCES.md)
 - [anchor-design-source](reference/anchor-design-source.txt)
 - [华为主题多分辨率适配_锚点分组容器布局技术设计_V1.0](reference/华为主题多分辨率适配_锚点分组容器布局技术设计_V1.0.docx)
 
