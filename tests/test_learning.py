@@ -11,6 +11,7 @@ from multires_app.learning.annotations import extract
 from multires_app.learning.catalog import Catalog
 from multires_app.learning.dataset import input_layout
 from multires_app.learning.shard_model import shard
+from multires_app.learning.run_report import build_run_report
 from multires_app.evaluation.core import digest
 from multires_app.pipeline.scene_clusters import transformed_box
 from tests.test_anchor_layout import comp, ctx, SOURCE
@@ -146,6 +147,22 @@ class LearningTests(unittest.TestCase):
             for name,expected in [('a',payload[:8]),('b',payload[8:])]:
                 data=(root/'sharded'/index['weight_map'][name]).read_bytes();length=struct.unpack('<Q',data[:8])[0]
                 self.assertEqual(data[8+length:],expected)
+
+    def test_run_report_distinguishes_valid_output_from_pending_evaluation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'dataset').mkdir();s=self.sample()
+            s.update(project=str(root/'projects/chusheng/scenes/project.json'),annotations='annotations/sample.json',
+                     labels={'trace':[],'script':'labels/cache.json'})
+            (root/'dataset/samples.jsonl').write_text(json.dumps(s)+'\n',encoding='utf8')
+            (root/'inputs.json').write_text(json.dumps({'themes':[{'id':'chusheng','name':'<theme>'}]}),encoding='utf8')
+            (root/'prepare-result.json').write_text(json.dumps({'themes':[{'id':'chusheng','name':'<theme>',
+                'states':1,'components':1,'coverage':{}}]}),encoding='utf8')
+            (root/'lora-predictions.json').write_text(json.dumps({s['requestKey']:{'status':'valid','answer':s['label']['answer']}}),encoding='utf8')
+            result=build_run_report(root);page=(root/'index.html').read_text(encoding='utf8')
+            self.assertEqual(result['valid'],1);self.assertTrue(result['complete'])
+            self.assertIn('正在等待布局评价',page)
+            self.assertNotIn('模型提案未通过协议检查',page)
+            self.assertIn('&lt;theme&gt;',page);self.assertNotIn('<theme>',page)
 
 
 if __name__=='__main__':unittest.main()
