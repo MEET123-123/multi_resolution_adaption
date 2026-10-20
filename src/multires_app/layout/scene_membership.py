@@ -30,13 +30,14 @@ def scene_membership_errors(project,device,layout,native_elements=None):
             result.append((uid,b))
         return result
     original=rows(source)
+    backgrounds={u for c in project.get('components',[]) if c['role']=='background' for u in c['members']}
     actual=rows(layout,True) if native_elements is None else [(e['id'],e['rect']) for e in native_elements
         if e.get('visible') and e['tag']!='Group' and e['id'] in nodes]
     errors=[]
     for kind,expected,found in [
         ('visible-node',Counter(uid for uid,_ in original),Counter(uid for uid,_ in actual)),
-        ('onscreen-node',Counter(uid for uid,b in original if onscreen(b,source_viewport)),
-                         Counter(uid for uid,b in actual if onscreen(b,device['viewport'])))]:
+        ('onscreen-node',Counter(uid for uid,b in original if uid not in backgrounds and onscreen(b,source_viewport)),
+                         Counter(uid for uid,b in actual if uid not in backgrounds and onscreen(b,device['viewport'])))]:
         for uid in sorted(expected.keys()|found.keys()):
             if expected[uid]!=found[uid]:errors.append({'kind':kind,'node':uid,'expected':expected[uid],'actual':found[uid]})
     return errors

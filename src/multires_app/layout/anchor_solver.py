@@ -152,6 +152,27 @@ def solve(ir, local, region, desired, frozen=None, constraints=None, min_scale=.
             if abs(points[0]-points[1])>.01:relation['unresolvedLocalOffset']=abs(points[0]-points[1])
         else:
             relation['scope']='shared-line'
+            # A near-centered inferred container can have a child line a few
+            # pixels from its optical center. Independently centering another
+            # group on that child line would require zero/negative scale. Keep
+            # the screen-center contracts and retain this inferred line as a
+            # strong preference. Authored relations and public locks stay hard.
+            ar,br=leaf_roots[a],leaf_roots[b]
+            centered=all(axis in groups[root].get('centerRequiredAxes',[]) for root in (ar,br))
+            if centered and not any(cid in frozen for root in (ar,br) for cid in local[root]['leaves']):
+                offsets=[]
+                for cid,root,rect in ((a,ar,relation['firstRect']),(b,br,relation['lastRect'])):
+                    frame=groups[root].get('_center_bounds',{'x':0,'y':0,**local[root]['size']})
+                    line=local[root]['leaves'][cid][axis]+rect[axis]-elements[cid]['current_bbox'][axis]+f*rect[size]
+                    offsets.append(line-frame[axis]-frame[size]/2)
+                oa,ob=offsets
+                incompatible=(abs(oa)<=.01)!=(abs(ob)<=.01) or oa*ob<0
+                if all('_fixed_resource_scale' in groups[root] for root in (ar,br)):
+                    incompatible|=abs(oa*groups[ar]['_fixed_resource_scale']-ob*groups[br]['_fixed_resource_scale'])>.005
+                if incompatible:
+                    relation.update(priority='strong',relaxation='inferred child alignment conflicts with independent optical centering',centerOffsets=offsets)
+                    add(delta==0,relation['id']+':center-preference','strong',100,relation['provenance'])
+                    continue
             first=line_root(line_key(a,relation['firstRect'],axis,f));last=line_root(line_key(b,relation['lastRect'],axis,f))
             if first==last:
                 relation['solverRedundant']=True;continue

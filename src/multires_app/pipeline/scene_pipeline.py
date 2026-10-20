@@ -331,12 +331,16 @@ def create_model_project(model,assets,source_profile,profiles,out,algorithm_spec
     source_device=build_source_device(reference_project)
     from multires_app.layout.footer_components import split_footer_components
     reference_project['sourceDevice']=source_device
+    from multires_app.interaction.regional_gestures import split_regional_gestures
+    split_regional_gestures(reference_project)
     reference_project['devices']=[{'profile':profile} for profile in target_profiles(profiles)]
     from multires_app.layout.composition_sections import split_composition_sections
     section_splits=split_composition_sections(reference_project) if not component_file else []
     from multires_app.layout.background_layers import split_background_layers
     background_splits=split_background_layers(reference_project) if not component_file else []
     footer_splits=split_footer_components(reference_project) if not component_file else []
+    from multires_app.preview.component_refinement import partition_button_components
+    button_partitions=partition_button_components(reference_project) if not component_file else []
     from multires_app.layout.panel_scaling import infer_panel_scale_families
     scale_families=infer_panel_scale_families(reference_project) if not component_file else []
     components=reference_project['components'];comp_by_node=reference_project['nodeComponents']
@@ -387,6 +391,7 @@ def create_model_project(model,assets,source_profile,profiles,out,algorithm_spec
     project['compositionSectionSplits']=section_splits
     project['backgroundLayerSplits']=background_splits
     project['resourceScaleFamilies']=scale_families
+    project['buttonComponentPartitions']=button_partitions
     project['anchorIRs']=anchor_store
     project['archiveValidation']=archive_validation
     from multires_app.pipeline.layout_storage import compact_layout_storage
@@ -475,10 +480,15 @@ def relayout_project(project_path, algorithm_spec="anchor", component_file=None,
     # Cached rows remain reusable, but ownership changes require a fresh source map.
     from multires_app.pipeline.source_comparison import build_source_device
     project['sourceDevice']=build_source_device(project)
+    from multires_app.interaction.regional_gestures import split_regional_gestures
+    split_regional_gestures(project)
     from multires_app.media.media_layout import refresh_references
     refresh_references(project)
     from multires_app.layout.footer_components import split_footer_components
     if not component_file:split_footer_components(project)
+    if not component_file:
+        from multires_app.preview.component_refinement import partition_button_components
+        partition_button_components(project)
     from multires_app.layout.panel_scaling import infer_panel_scale_families
     if not component_file:infer_panel_scale_families(project)
     from multires_app.pipeline.scene_clusters import schedule_device
@@ -556,6 +566,7 @@ def compiled_transform(project, device, cid, field):
 
 
 def export_script(project, target, out):
+    project['_referenceAssetRoot']=str((out.parent.parent if out.parent.name=='scripts' else out.parent).resolve())
     model=project["model"];source=Path(project["source"])
     if source.is_file():
         with zipfile.ZipFile(source) as z:data=z.read(model["file"])

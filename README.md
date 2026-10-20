@@ -50,7 +50,9 @@ multi-res/
 | 要做什么 | 看哪里 |
 |---|---|
 | 加入自己的布局算法 | [算法接入说明](docs/CUSTOM_LAYOUT.md) |
+| 对所有主题批量适配、回读交互与批量参考图匹配 | [全主题通用流程](docs/guides/UNIVERSAL_THEME_ADAPTATION.md)、`multires.py tools corpus-adapt`、`multires.py tools reference-workflow batch` |
 | 用目标布局图匹配原组件并反写脚本（无需训练） | [目标图匹配](docs/guides/TARGET_LAYOUT_MATCHING.md)、`multires.py tools target-layout` |
+| 原始手机渲染、生图请求、自动匹配、HWT 反写和回读；批量前后截图回归 | [参考图完整流程](docs/guides/TARGET_LAYOUT_MATCHING.md#原始渲染--生图--自动匹配--脚本反写)、`multires.py tools reference-workflow`、`multires.py tools reference-pairs` |
 | 在一个页面完成上传、场景聚类、布局策略、参考图匹配和脚本生成 | [主题适配工作台](docs/guides/THEME_WORKBENCH.md)、`multires.py tools workbench` |
 | 理解交互如何变成布局 | [项目结构与处理流程](docs/PROJECT_STRUCTURE.md) |
 | 规划鸿蒙 5.0 及以上主题适配 | [规范与迁移方案](docs/guides/HARMONYOS5_MIGRATION.md)、[逐文件改造清单](docs/guides/HARMONYOS5_IMPLEMENTATION_PLAN.md) |

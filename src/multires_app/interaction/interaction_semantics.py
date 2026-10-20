@@ -9,9 +9,33 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 from collections import defaultdict, deque
 
 from multires_app.engine.scene_engine import REF, Runtime, VISUAL, touch_samples, coverage_report
+
+
+def tap_only_owner(model,owner):
+    """Recognize explicit short-distance tap guards; never infer from a name."""
+    triggers=[t for t in model.get('triggers',[]) if t['owner']==owner]
+    if any(t['action']=='move' for t in triggers):return False
+    commands=[(t,c) for t in triggers if t['action'] in {'up','tap','click'} for c in t['commands']]
+    if not commands:return False
+    def guarded(text):
+        refs=set(REF.findall(text));pending=list(refs)
+        while pending:
+            name=pending.pop();node=model.get('variables',{}).get(name,{})
+            expression=node.get('attributes',{}).get('expression','');text+=' '+expression
+            extra=set(REF.findall(expression))-refs;refs.update(extra);pending.extend(extra)
+        text=re.sub(r'\s+','',text)
+        if '+' in text or 'ifelse(' in text:return False
+        # Both axes must be explicitly bounded to a short displacement. An
+        # arbitrary condition that only mentions touch coordinates is not enough.
+        for axis in ('x','y'):
+            match=re.search(r'(?:lt|le)\(abs\(#touch_(?:begin_'+axis+'-#touch_'+axis+'|'+axis+'-#touch_begin_'+axis+r')\),([0-9.]+)\)',text)
+            if not match or float(match.group(1))>80:return False
+        return True
+    return all(guarded(' '.join([t.get('condition') or '',*c.get('conditions',[])])) for t,c in commands)
 
 
 def swipe_axes(model, owner):
@@ -137,10 +161,12 @@ def hit_test(elements,x,y,model=None,viewport=None,gesture=None):
     if model and viewport and policy!='strict-z-order' and gesture in {'left','right','up','down'}:
         axis='x' if gesture in {'left','right'} else 'y'
         area=viewport['width']*viewport['height']
+        competing=any(e['rect']['w']*e['rect']['h']>=area*.1 and swipe_axes(model,e['id'])==[axis] for e in matches)
         # Coexisting full-screen horizontal paging and vertical unlock layers
         # must negotiate by direction. Local controls still capture normally.
         matches=[e for e in matches if not (
-            e['rect']['w']*e['rect']['h']>=area*.85
+            competing and model['nodes'][e['id']]['attributes'].get('interceptTouch','false').lower()!='true' and tap_only_owner(model,e['id'])) and not (
+            (e['rect']['w']*e['rect']['h']>=area*.85 or competing and e['rect']['w']*e['rect']['h']>=area*.1)
             and model['nodes'][e['id']]['attributes'].get('interceptTouch','false').lower()!='true'
             and swipe_axes(model,e['id'])==[('y' if axis=='x' else 'x')])]
         if not matches:return None

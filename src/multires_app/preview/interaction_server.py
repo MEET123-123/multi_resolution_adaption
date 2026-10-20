@@ -28,6 +28,8 @@ class InteractiveSession:
         self.project=copy.deepcopy({k:v for k,v in project.items() if k!="devices" and not k.startswith("_")})
         device=copy.deepcopy(next(d for d in project["devices"] if d["profile"]["id"]==target))
         self.project["devices"]=[device];self.device=device
+        from multires_app.interaction.regional_gestures import split_regional_gestures
+        split_regional_gestures(self.project)
         self.model=self.project["model"];self.model["assetNames"]=list(project["assets"])
         if self.project["graph"].get("interactionMode")!="human-gesture-transactions":raise ValueError("请先用新版 scenes 重新生成项目")
         state=next((s for s in project["graph"]["states"] if s["id"]==(state_id or "state-000")),None)
@@ -404,9 +406,21 @@ def serve_project(project_path,port=8765,workbench=None):
                     elif operation=="/api/select":result=session.select(body["state"])
                     elif operation=="/api/refinerequest":result=session.refinement_request()
                     elif operation=="/api/refineapply":result=session.apply_refinement(body['proposal'])
+                    elif operation=="/api/generationrequest":
+                        from multires_app.preview.reference_workflow import generation_bundle
+                        from multires_app.pipeline.source_comparison import packed_snapshot
+                        source_layout=packed_snapshot(session.project,session.source_runtime,session.state_id)
+                        result=generation_bundle(session.project,{'viewport':session.source_viewport},source_layout,
+                            session.device['profile']['id'],session.state_id,session.output_root)
                     elif operation=="/api/targetcatalog":
-                        from multires_app.preview.target_layout import build_catalog
-                        result,_=build_catalog(session.project,session.device['profile']['id'],session.state_id,session.output_root)
+                        from multires_app.preview.target_layout import build_catalog,make_atlas
+                        result,templates=build_catalog(session.project,session.device['profile']['id'],session.state_id,session.output_root,layout_mode=body.get('layoutMode','preserve'))
+                        if body.get('includeAtlas') is True:
+                            directory=session.output_root/'target-matching'/uuid.uuid4().hex[:12];directory.mkdir(parents=True)
+                            eligible=[g for g in result['groups'] if not g['locked']];result['atlases']=[]
+                            for i in range(0,len(eligible),9):
+                                name=f'atlas-{i//9}.png';make_atlas(eligible[i:i+9],templates).save(directory/name)
+                                result['atlases'].append((directory/name).relative_to(session.output_root).as_posix())
                     elif operation=="/api/anchorapply":result=session.apply_anchor_configuration(body['configuration'],body.get('reason','designer correction'))
                     elif operation in {"/api/match","/api/matchtarget"}:
                         data=body.get('image','')
@@ -419,11 +433,12 @@ def serve_project(project_path,port=8765,workbench=None):
                         else:
                             from multires_app.preview.target_layout import match_target_layout
                             strategy=body.get('strategy','template');preserve=body.get('preserveRelations',True)
-                            confidence=body.get('minimumConfidence',.78)
-                            if strategy not in {'template','qwen'} or type(preserve) is not bool or type(confidence) not in (int,float) or not math.isfinite(confidence) or not 0<=confidence<=1:
+                            confidence=body.get('minimumConfidence',.78);mode=body.get('layoutMode','preserve')
+                            if mode not in {'preserve','reference-first'} or strategy not in {'auto','template','qwen','hybrid'} or type(preserve) is not bool or type(confidence) not in (int,float) or not math.isfinite(confidence) or not 0<=confidence<=1:
                                 raise ValueError('目标布局匹配参数无效')
                             result=match_target_layout(session.project,session.device['profile']['id'],session.state_id,raw,session.output_root,
-                                strategy=strategy,minimum_confidence=confidence,preserve_relations=preserve,apply_scope=body.get('applyScope','matching-components'))
+                                strategy=strategy,minimum_confidence=confidence,preserve_relations=preserve,apply_scope=body.get('applyScope','matching-components'),layout_mode=mode,
+                                observations=body.get('observations'))
                     elif operation=="/api/export":
                         result=session.save(output_root/"live"/sid);result["url"]="live/"+sid+"/adapted.hwt";result['historyUrl']='live/'+sid+'/interaction-history.json'
                     else:self.send_error(404);return

@@ -99,6 +99,10 @@ class ResourceScalingTests(unittest.TestCase):
             self.assertEqual(validation['failures'],0,validation['examples'])
             self.assertEqual(validation['generatedResourcesChecked'],2)
             self.assertEqual(validation['checkedGlyphSnapshots'],2)
+            from multires_app.preview.reference_workflow import audit_package
+            audit=audit_package(project_path,package,'phone-portrait',device['layouts'][0]['state'])
+            self.assertTrue(audit['geometryPassed'],audit['worstNodes'])
+            self.assertGreaterEqual(audit['comparedStableNodes'],4)
 
     def test_invalid_scale_policy_is_rejected(self):
         target={'resolutionPx':{'width':1600,'height':1000},'adaptation':{'anchorLayout':{'resourceScalePolicy':'stretch-image'}}}

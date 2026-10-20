@@ -265,7 +265,28 @@ def layout_rows(project, layout):
     if 'nodeIds' in ref:
         ids=set(ref['nodeIds']);indices.update(i for i,uid in enumerate(project['nodeOrder']) if uid in ids)
     current={r[0]:r for r in layout['rows']}
-    references=[current[r[0]] if min(r[3:5])<=0 and r[0] in current and min(current[r[0]][3:5])>0 else r for r in ref['rows']]
+    # A temporal expression does not necessarily describe a media frame. Intro
+    # easing on a static weather card must use its observed settled geometry;
+    # freezing just some descendants at t=0 creates an enormous false frame.
+    # True videos and frame sequences keep their canonical first-frame
+    # reference. Looping crop inference is handled by constraint_rows instead.
+    # Human page/visibility predicates remain unchanged.
+    canonical=project.get('_canonicalMediaLayoutIds')
+    if canonical is None:
+        from multires_app.engine.scene_engine import REF
+        model=project.get('model',{'nodes':{},'variables':{}});names=temporal_names(model)
+        canonical=set()
+        if not model['nodes']:canonical.update(project['nodeOrder'])
+        for uid,node in model['nodes'].items():
+            a=node['attributes']
+            if (node['tag']=='Video' or any(model['nodes'][c]['tag']=='SourcesAnimation' for c in node['children']) or
+                    any(set(REF.findall(a.get(k,'')))&names for k in ('srcid','srcExp'))):canonical.add(uid)
+        project['_canonicalMediaLayoutIds']=sorted(canonical)
+    canonical=set(canonical);references=[]
+    for r in ref['rows']:
+        if project['nodeOrder'][r[0]] not in canonical:
+            if r[0] in current:references.append(current[r[0]])
+        else:references.append(current[r[0]] if min(r[3:5])<=0 and r[0] in current and min(current[r[0]][3:5])>0 else r)
     inactive=set(ref.get('inactiveSceneNodeIndices',[]))
     return sorted([r for r in [*[r for r in layout['rows'] if r[0] not in indices],*references] if r[0] not in inactive],key=lambda r:r[0])
 

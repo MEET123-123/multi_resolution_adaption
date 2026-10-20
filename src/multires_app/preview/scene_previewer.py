@@ -21,14 +21,18 @@ def scene_preview_html(project):
     if 'sourceDevice' not in project:
         from multires_app.pipeline.source_comparison import build_source_device
         project['sourceDevice']=build_source_device(project)
+    from multires_app.interaction.regional_gestures import split_regional_gestures
+    split_regional_gestures(project)
     nodes=project['model']['nodes']
+    from multires_app.interaction.interaction_semantics import tap_only_owner
+    actions=[{**a,'tapOnly':tap_only_owner(project['model'],a['owner'])} for a in project['graph'].get('semantics',{}).get('actions',[])]
     devices=[{**d,'layouts':[preview_layout(l) for l in d['layouts']]} for d in project['devices']]
     payload={'devices':devices,'sourceDevice':project['sourceDevice'],
              'nodes':[nodes[uid] for uid in project['nodeOrder']],'components':project['components'],
              'nodeComponents':project['nodeComponents'],'assets':[{**project['assets'][uid],'path':uid} for uid in project['assetOrder']],
              'states':[{k:v for k,v in s.items() if k in {'id','label','depth','controlValues'}} for s in project['graph']['states']],
              'transitions':project['graph']['transitions'],'coverage':project['graph']['coverage'],'diagnostics':project['diagnostics'],
-             'limitations':project['limitations'],'humanActions':project['graph'].get('semantics',{}).get('actions',[]),
+             'limitations':project['limitations'],'humanActions':actions,
              'pointerPolicy':project['model'].get('inputs',{}).get('interaction',{}).get('hitPolicy','specific-controls-before-global-gestures'),
              'bindings':project['model'].get('layoutBindings',{}).get('bindings',[]),
              'sceneAnalysis':project.get('sceneAnalysis',{})}

@@ -23,7 +23,16 @@ def geometry_digest(target,state,viewport,components):
     return hashlib.sha256('\n'.join(lines).encode('utf-8')).hexdigest()
 
 
+def context_digest(descriptions):
+    """A clock cannot inherit a pose into a different popup/decoration context."""
+    rows=[(cid,d['geometry'],d.get('bounds'),[(r[0],r[1]) for r in d.get('content',[])]) for cid,d in sorted(descriptions.items())
+          if d['role'] not in {'background','gesture-layer','interaction-layer'}]
+    return hashlib.sha256(json.dumps(rows,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
+
+
 def export_request(project,target,state):
+    from multires_app.interaction.regional_gestures import split_regional_gestures
+    split_regional_gestures(project)
     device=next((d for d in project['devices'] if d['profile']['id']==target),None)
     if device is None:raise ValueError('未知目标设备：'+str(target))
     layout=next((l for l in device['layouts'] if l['state']==state),None)
@@ -46,7 +55,7 @@ def export_request(project,target,state):
                                 'baseDigest':geometry_digest(target,state,device['viewport'],components),'applyScope':'matching-components','components':[]}}
 
 
-def validate_geometry_change(descriptions,before,after,changed,locked,region,state,groups=None):
+def validate_geometry_change(descriptions,before,after,changed,locked,region,state,groups=None,collision_bounds=None):
     """Check every affected scene, including components absent in the edited scene."""
     old_boxes={cid:transformed_box(desc['bounds'],before.get(cid,{'sx':1,'sy':1,'tx':0,'ty':0})) for cid,desc in descriptions.items()}
     new_boxes={cid:transformed_box(desc['bounds'],after.get(cid,{'sx':1,'sy':1,'tx':0,'ty':0})) for cid,desc in descriptions.items()}
@@ -55,12 +64,19 @@ def validate_geometry_change(descriptions,before,after,changed,locked,region,sta
         b=new_boxes[cid]
         if b['x']<region['x']-.5 or b['y']<region['y']-.5 or b['x']+b['w']>region['x']+region['w']+.5 or b['y']+b['h']>region['y']+region['h']+.5:
             raise ValueError('状态 '+state+' 中 bbox 超出安全区：'+cid)
+    if collision_bounds:
+        old_boxes={cid:transformed_box(collision_bounds.get(cid,desc['bounds']),before.get(cid,{'sx':1,'sy':1,'tx':0,'ty':0})) for cid,desc in descriptions.items()}
+        new_boxes={cid:transformed_box(collision_bounds.get(cid,desc['bounds']),after.get(cid,{'sx':1,'sy':1,'tx':0,'ty':0})) for cid,desc in descriptions.items()}
     ids=list(new_boxes)
     for i,cid in enumerate(ids):
         if cid in locked:continue
         a=new_boxes[cid]
         for other in ids[:i]:
             if other in locked or not ({cid,other}&changed):continue
+            # A separately inferred visibility boundary inside an authored card
+            # is intentional containment, even if an earlier adaptation detached
+            # the text from the parent. Reuniting it is not a new collision.
+            if cid.startswith(other+'/') or other.startswith(cid+'/'):continue
             b=new_boxes[other];area=min(a['w']*a['h'],b['w']*b['h'])
             if area>0 and overlap(a,b)/area>.05 and overlap(old_boxes[cid],old_boxes[other])==0:
                 raise ValueError('状态 '+state+' 中建议产生新的组件重叠：'+cid+' / '+other)
@@ -72,12 +88,38 @@ def validate_geometry_change(descriptions,before,after,changed,locked,region,sta
             raise ValueError('状态 '+state+' 中同组图层无法保持共同变换：'+str(name))
 
 
+def reference_collision_bounds(project,target,state):
+    """Derive optical collision bounds from rendered assets, never client boxes."""
+    root=project.get('_referenceAssetRoot')
+    if not root:return None
+    cache=project.setdefault('_referenceCollisionCache',{})
+    key=(target,state)
+    if key not in cache:
+        from multires_app.preview.target_layout import build_catalog
+        catalog,_=build_catalog(project,target,state,Path(root),layout_mode='reference-first')
+        cache[key]={cid:g['matchBox'] for g in catalog['groups'] if not g['locked'] for cid in g['members']}
+    return cache[key]
+
+
+def collision_exemptions(descriptions,reference_first=False):
+    exempt={cid for cid,d in descriptions.items() if d['role'] in {'background','gesture-layer','interaction-layer'}}
+    if reference_first:
+        # Autonomous decorative motion is allowed to traverse the composition.
+        # A sampled off-canvas sun/cloud is not a stationary UI obstacle. Its
+        # original motion/visibility and any changed frame containment still apply.
+        exempt.update(cid for cid,d in descriptions.items() if d['role']=='decoration'
+            and any(any(isinstance(v,str) and v.startswith('animated') for v in geometry[1][:2]) for geometry in d['geometry']))
+    return exempt
+
+
 def validate_and_apply(project,proposal):
     if not isinstance(proposal,dict):raise ValueError('布局建议必须为 JSON 对象')
     if proposal.get('schemaVersion')!=1 or proposal.get('kind')!='layout-refinement-proposal':raise ValueError('布局建议 schema/kind 无效')
     target,state=proposal.get('target'),proposal.get('state')
     scope=proposal.get('applyScope','matching-components')
     if scope not in {'state','matching-components'}:raise ValueError('applyScope 必须为 state 或 matching-components')
+    propagation=proposal.get('propagationPolicy','component')
+    if propagation not in {'component','compatible-layout'}:raise ValueError('未知传播策略')
     request=export_request(project,target,state)
     if proposal.get('baseDigest')!=request['baseDigest']:raise ValueError('布局已变化，请重新导出请求或重新匹配参考图')
     if not isinstance(proposal.get('components'),list) or len(proposal['components'])>512:raise ValueError('components 必须为不超过 512 项的数组')
@@ -114,6 +156,10 @@ def validate_and_apply(project,proposal):
         if any(any(abs(t[k]-matrices[0][k])>1e-4 for k in t) for t in matrices[1:]):raise ValueError('同组图层必须共用等比变换：'+str(name))
     warnings=[]
     result=copy.deepcopy(project)
+    # Optical bounds depend on the original script pose, not candidate
+    # transforms. Share this read-through cache across retries; otherwise every
+    # rejected observation rerasterized all propagated scenes repeatedly.
+    result['_referenceCollisionCache']=project.setdefault('_referenceCollisionCache',{})
     device=next(d for d in result['devices'] if d['profile']['id']==target)
     layout=next(l for l in device['layouts'] if l['state']==state)
     for cid,change in changes.items():layout['transforms'][cid]=change['transform']
@@ -124,15 +170,25 @@ def validate_and_apply(project,proposal):
         report['reference']=copy.deepcopy(proposal.get('reference',{}))
         report['artifacts']=copy.deepcopy(proposal.get('artifacts',{}))
     layout['manualRefinement']=report
-    report['applyScope']=scope
+    report['applyScope']=scope;report['propagationPolicy']=propagation;report['skippedStates']=[]
     if scope=='matching-components':
         original_device=next(d for d in project['devices'] if d['profile']['id']==target)
         original_layout=next(l for l in original_device['layouts'] if l['state']==state)
         baseline=describe_layout(project,original_layout)
+        baseline_context=context_digest(baseline)
+        obstacle_transforms={cid:dict(t) for cid,t in original_layout['transforms'].items() if cid not in changes}
+        if propagation=='compatible-layout':
+            device['manualComponentAnchorContext']=baseline_context
+            device['manualComponentAnchorObstacleTransforms']=obstacle_transforms
         anchors=device.setdefault('manualComponentAnchors',{})
+        if propagation=='compatible-layout':device['manualComponentAnchorPolicy']='compatible-layout'
         for cid,change in changes.items():anchors[cid]={'geometry':baseline[cid]['geometry'],'bounds':baseline[cid]['bounds'],'transform':change['transform']}
         for other_layout in device['layouts']:
             desc=describe_layout(result,other_layout)
+            incompatible_pose=any(other_layout['transforms'].get(cid)!=t for cid,t in obstacle_transforms.items() if cid in desc)
+            if propagation=='compatible-layout' and other_layout['state']!=state and (incompatible_pose or context_digest(desc)!=baseline_context or not all(cid in desc and same_geometry(desc[cid],baseline[cid]) for cid in changes)):
+                if other_layout['state']!=state:report['skippedStates'].append(other_layout['state'])
+                continue
             for cid,change in changes.items():
                 if cid in desc and same_geometry(desc[cid],baseline[cid]):other_layout['transforms'][cid]=dict(change['transform'])
     original_device=next(d for d in project['devices'] if d['profile']['id']==target)
@@ -146,13 +202,32 @@ def validate_and_apply(project,proposal):
         changed={cid for cid,t in candidate['transforms'].items() if t!=before['transforms'].get(cid)}
         if not changed:continue
         desc=describe_layout(result,candidate)
-        validate_geometry_change(desc,before['transforms'],candidate['transforms'],changed,{cid for cid,d in desc.items() if d['role'] in {'background','gesture-layer'}},region,candidate['state'],all_groups)
+        optical=reference_collision_bounds(result,target,candidate['state']) if propagation=='compatible-layout' else None
+        validate_geometry_change(desc,before['transforms'],candidate['transforms'],changed,collision_exemptions(desc,propagation=='compatible-layout'),region,candidate['state'],all_groups,optical)
+        if propagation=='compatible-layout':
+            prior=candidate.get('adaptationPlan',{})
+            candidate['manualRefinement']={**report,'appliedState':candidate['state']}
+            candidate['adaptationPlan']={'policy':'reviewed-layout-json','placementPolicy':'reference-first',
+                'sourceConstraintStrength':'weak','refinement':candidate['manualRefinement'],
+                'referenceBaselineTransforms':copy.deepcopy(before['transforms']),
+                'anchorPlan':copy.deepcopy(prior.get('anchorPlan',prior))}
         propagated+=1
     report['affectedStates']=propagated
-    prior=layout.get('adaptationPlan',{})
-    layout['adaptationPlan']={'policy':'reviewed-layout-json','refinement':report,
-                              'previousPolicy':prior.get('policy'),
-                              'anchorPlan':copy.deepcopy(prior.get('anchorPlan',prior))}
+    if propagation=='compatible-layout':
+        by_state={l['state']:l for l in device['layouts']}
+        for candidate in device['layouts']:
+            req=candidate.get('layoutRequest',{});base=by_state.get(req.get('baseState'))
+            if not base:continue
+            fixed=req.get('fixedComponents',[])
+            released=[cid for cid in fixed if candidate['transforms'].get(cid)!=base['transforms'].get(cid)]
+            if released:
+                req['fixedComponents']=[cid for cid in fixed if cid not in released]
+                req.setdefault('evidence',[]).append('reference-first fork releases inferred public locks across incompatible scene layouts')
+    if propagation!='compatible-layout':
+        prior=layout.get('adaptationPlan',{})
+        layout['adaptationPlan']={'policy':'reviewed-layout-json','refinement':report,
+                                  'previousPolicy':prior.get('policy'),
+                                  'anchorPlan':copy.deepcopy(prior.get('anchorPlan',prior))}
     return result,report
 
 
@@ -160,7 +235,14 @@ def write_back(project_path,proposal):
     """Stage compiler outputs first, then keep a recoverable source JSON backup."""
     from multires_app.pipeline.scene_pipeline import export_script
     from multires_app.preview.scene_previewer import build_scene_preview
-    path=Path(project_path);old=path.read_bytes();project=json.loads(old)
+    path=Path(project_path);old=path.read_bytes();project=json.loads(old);project['_referenceAssetRoot']=str(path.parent.resolve())
+    for d in project['devices']:
+        for l in d['layouts']:
+            plan=l.get('adaptationPlan',{})
+            if plan.get('policy')=='component-refinement-preserved-transforms' and 'baselineTransforms' not in plan:
+                plan['baselineTransforms']=copy.deepcopy(l['transforms'])
+    from multires_app.interaction.regional_gestures import split_regional_gestures
+    split_regional_gestures(project)
     updated,report=validate_and_apply(project,proposal)
     token=uuid.uuid4().hex[:10];directory=path.parent
     staged_script=directory/('refinement-'+token+'.xml');staged_preview=directory/('refinement-'+token+'.html')

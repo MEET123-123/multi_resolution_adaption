@@ -52,11 +52,13 @@ def validate_config(body):
     directions=body.get('orientations',['portrait','landscape'])
     if not isinstance(directions,list) or not directions or len(directions)>2 or any(not isinstance(d,str) for d in directions) or len(set(directions))!=len(directions) or not set(directions)<={'portrait','landscape'}:raise ValueError('屏幕方向无效')
     states,depth=body.get('maxStates',24),body.get('maxDepth',4)
+    interaction_space=body.get('interactionSpace','source')
+    if interaction_space not in {'source','target'}:raise ValueError('交互屏幕分支策略无效')
     if type(states) is not int or not 1<=states<=128 or type(depth) is not int or not 0<=depth<=8:raise ValueError('状态数应为 1..128，交互深度应为 0..8')
     def dimensions(value):
         if not isinstance(value,dict) or set(value)!={'width','height'} or any(type(v) is not int or not 240<=v<=8192 for v in value.values()) or value['width']*value['height']>32_000_000:raise ValueError('画布边长应为 240..8192，最多 3200 万像素')
         return value
-    return {'targets':ids,'orientations':directions,'maxStates':states,'maxDepth':depth,
+    return {'targets':ids,'orientations':directions,'maxStates':states,'maxDepth':depth,'interactionSpace':interaction_space,
         'custom':dimensions(body.get('custom',{'width':2560,'height':1600})),
         'sourceDimensions':dimensions(body['sourceDimensions']) if body.get('sourceDimensions') is not None else None,
         'strategy':validate_strategy(body.get('strategy',{}))}

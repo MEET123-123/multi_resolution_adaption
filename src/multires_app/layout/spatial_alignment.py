@@ -37,6 +37,7 @@ def infer_alignments(elements, viewport, tolerance=.01):
 def alignment_errors(relations, transforms, tolerance=.1):
     errors=[]
     for r in relations:
+        if r.get('priority','required')!='required':continue
         if r['first'] not in transforms or r['last'] not in transforms:continue
         a=transformed_box(r['firstRect'],transforms[r['first']]);b=transformed_box(r['lastRect'],transforms[r['last']])
         axis=r['axis'];size='w' if axis=='x' else 'h';factor=r['factor']

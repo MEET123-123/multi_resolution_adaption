@@ -93,6 +93,27 @@ class LayoutRefinementTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'state-copy'):validate_and_apply(project,self.proposal())
         self.assertEqual(project['devices'],before['devices'])
 
+    def test_reference_reflow_propagates_whole_compatible_layout_and_exports(self):
+        project=copy.deepcopy(self.project);device=project['devices'][0]
+        compatible=copy.deepcopy(device['layouts'][0]);compatible['state']='compatible';device['layouts'].append(compatible)
+        incompatible=copy.deepcopy(device['layouts'][0]);incompatible['state']='incompatible';device['layouts'].append(incompatible)
+        request=export_request(project,'square-portrait','state-000');items=[c for c in request['components'] if not c['locked']]
+        altered=items[-1]['id']
+        index=project['nodeOrder'].index(next(uid for uid,cid in project['nodeComponents'].items() if cid==altered))
+        for row in incompatible['rows']:
+            if row[0]==index:row[2]+=2
+        proposal={**request['responseTemplate'],'origin':'expected-image-matcher','propagationPolicy':'compatible-layout',
+                  'components':[{'id':c['id'],'bbox':{**c['bbox'],'x':c['bbox']['x']+10}} for c in items]}
+        updated,report=validate_and_apply(project,proposal)
+        self.assertIn('incompatible',report['skippedStates'])
+        self.assertEqual(report['affectedStates'],2)
+        self.assertEqual(updated['devices'][0]['layouts'][2]['transforms'],incompatible['transforms'])
+        from multires_app.layout.anchor_validation import validate_export
+        validate_export(updated,updated['devices'][0])
+        # Export validates containment even when the original edge rules are weak.
+        cid=items[0]['id'];updated['devices'][0]['layouts'][0]['transforms'][cid]['tx']=-10000
+        with self.assertRaises(ValueError):validate_export(updated,updated['devices'][0])
+
     def test_multi_file_failure_restores_original_artifacts(self):
         paths=[self.path,self.path.parent/'scripts/square-portrait.xml',self.path.parent/'preview.html']
         before={p:p.read_bytes() for p in paths};replace=Path.replace

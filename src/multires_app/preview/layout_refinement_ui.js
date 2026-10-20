@@ -62,7 +62,7 @@ function validateProposal(request,proposal){
   const scale=Math.min(sx,sy);result.set(c.id,{sx:scale,sy:scale,tx:b.x-old.sourceBBox.x*scale,ty:b.y-old.sourceBBox.y*scale});}
  const groups=new Map();for(const c of current.values())if(c.group){if(!groups.has(c.group))groups.set(c.group,[]);groups.get(c.group).push(c.id);}
  for(const [group,members] of groups){if(!members.some(id=>seen.has(id)))continue;if(!members.every(id=>seen.has(id)))throw Error('同组组件必须一起修改：'+group);const first=result.get(members[0]);if(members.some(id=>Object.keys(first).some(k=>Math.abs(result.get(id)[k]-first[k])>1e-4)))throw Error('同组图层须共用变换');}
- const boxes=[...current.values()].filter(c=>!c.locked);for(let i=0;i<boxes.length;i++)for(let j=0;j<i;j++){const a=boxes[i],b=boxes[j];if(!seen.has(a.id)&&!seen.has(b.id))continue;const aa=proposal.components.find(c=>c.id===a.id)?.bbox||a.bbox,bb=proposal.components.find(c=>c.id===b.id)?.bbox||b.bbox;
+ const boxes=[...current.values()].filter(c=>!c.locked&&c.role!=='interaction-layer');for(let i=0;i<boxes.length;i++)for(let j=0;j<i;j++){const a=boxes[i],b=boxes[j];if(!seen.has(a.id)&&!seen.has(b.id))continue;if(a.id.startsWith(b.id+'/')||b.id.startsWith(a.id+'/'))continue;const aa=proposal.components.find(c=>c.id===a.id)?.bbox||a.bbox,bb=proposal.components.find(c=>c.id===b.id)?.bbox||b.bbox;
   if(overlapBox(aa,bb)>Math.min(aa.w*aa.h,bb.w*bb.h)*.05&&!overlapBox(a.bbox,b.bbox))throw Error('建议产生新的组件重叠');}
  return result;
 }
@@ -87,10 +87,10 @@ $('matchReference').onclick=async()=>{
   const strategy=$('targetMatchStrategy').value,start=Date.now();
   const update=()=>{$('refinementStatus').textContent=`正在${strategy==='qwen'?'加载本地视觉模型并匹配':'匹配原组件图集'}、求解布局… ${Math.floor((Date.now()-start)/1000)} 秒`;};update();timer=setInterval(update,1000);
   const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(referenceFile);});
-  const proposal=await api('matchtarget',{session,image,strategy,minimumConfidence:confidence,preserveRelations:$('targetKeepRelations').checked,applyScope:$('targetMatchReuse').checked?'matching-components':'state'});
+  const proposal=await api('matchtarget',{session,image,strategy,layoutMode:$('targetLayoutMode').value,minimumConfidence:confidence,preserveRelations:$('targetKeepRelations').checked,applyScope:$('targetMatchReuse').checked?'matching-components':'state'});
   if(generation!==sessionGeneration||target!==device().profile.id||state!==stateId||session!==liveSession||selectedFile!==referenceFile)throw Error('匹配期间图片、设备或状态已改变，请重新匹配');
   clearInterval(timer);timer=null;refinementProposal=proposal;showRefinement();
  }catch(e){$('refinementStatus').textContent=e.message;}finally{if(timer)clearInterval(timer);busy=false;$('matchReference').disabled=!live||!referenceFile;}
 };
-$('exportTargetCatalog').onclick=async()=>{if(!live){$('refinementStatus').textContent='导出组件组目录需本地服务或 target-layout catalog 命令';return;}if(busy)return;busy=true;try{downloadLayoutJSON(await api('targetcatalog',{session:liveSession}),'target-layout-catalog.json');$('refinementStatus').textContent='组件组目录已导出；含原脚本 ID、组别名、语义和约束';}catch(e){$('refinementStatus').textContent=e.message;}finally{busy=false;}};
+$('exportTargetCatalog').onclick=async()=>{if(!live){$('refinementStatus').textContent='导出组件组目录需本地服务或 target-layout catalog 命令';return;}if(busy)return;busy=true;try{downloadLayoutJSON(await api('targetcatalog',{session:liveSession,layoutMode:$('targetLayoutMode').value}),'target-layout-catalog.json');$('refinementStatus').textContent='组件组目录已导出；含原脚本 ID、组别名、语义和约束';}catch(e){$('refinementStatus').textContent=e.message;}finally{busy=false;}};
 $('discardRefinement').onclick=()=>{if(busy)return;refinementProposal=null;$('targetResolved').hidden=true;$('targetMatchReport').hidden=true;$('targetMatchSummary').textContent='';showRefinement();};

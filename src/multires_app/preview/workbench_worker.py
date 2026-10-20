@@ -1,10 +1,27 @@
 """Bounded subprocess steps for the local theme workbench."""
 import argparse
 import json
+import re
+import shutil
 from pathlib import Path
 import traceback
 
 from multires_app.preview.workbench import clone_scene, project_summary, save_json, target_profiles, relocate_resource_paths
+
+
+def preserve_matching_evidence(previous,output,proposal):
+    """Carry bounded review evidence into the new immutable workbench revision."""
+    previous=previous.resolve();copied=[];total=0
+    for relative in set(proposal.get('artifacts',{}).values()):
+        if not isinstance(relative,str) or not re.fullmatch(r'target-matching/[0-9a-f]{12}/(?:expected|before|after|catalog|report)\.(?:png|json|html)',relative):continue
+        directory=(previous/relative).parent
+        for name in ('expected.png','before.png','after.png','catalog.json','report.html','matches.json','proposal.json','automatic-candidates.json','automatic-overlay.png','source.png','source-observations.json'):
+            source=(directory/name).resolve()
+            if not source.is_relative_to(previous) or not source.is_file() or source in copied:continue
+            total+=source.stat().st_size
+            if total>50*1024*1024:raise ValueError('匹配证据超出复制预算')
+            destination=output/source.relative_to(previous);destination.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(source,destination);copied.append(source)
 
 
 def run(workspace,identity,taskid):
@@ -18,8 +35,10 @@ def run(workspace,identity,taskid):
         profile=source_profile(source)
         if task['config']['sourceDimensions']:profile['resolutionPx']=task['config']['sourceDimensions'];profile['note']='工作台手工指定源画布'
         profiles=target_profiles(task['config'],profile)
+        inputs=directory/'script-inputs.json'
+        save_json(inputs,{'interaction':{'coordinateSpace':task['config'].get('interactionSpace','source')}})
         print('探索人工交互状态、聚类并求解初始布局…',flush=True)
-        try:create_project(source,profile,profiles,output,task.get('algorithmSpec','anchor'),task['config']['maxStates'],task['config']['maxDepth'])
+        try:create_project(source,profile,profiles,output,task.get('algorithmSpec','anchor'),task['config']['maxStates'],task['config']['maxDepth'],inputs_file=inputs)
         except ValueError as exc:
             if not (output/'project.json').is_file():raise
             # The analysis is useful even if the final native-script compiler
@@ -35,6 +54,8 @@ def run(workspace,identity,taskid):
             from multires_app.pipeline.layout_storage import compact_layout_storage, externalize_anchor_evidence
             from multires_app.preview.scene_previewer import build_scene_preview
             project=json.loads((output/'project.json').read_text(encoding='utf8'));project['anchorIRs']={};project['model']['assetNames']=list(project['assets'])
+            from multires_app.interaction.regional_gestures import split_regional_gestures
+            split_regional_gestures(project)
             algorithm=load_scene_algorithm(task.get('algorithmSpec','anchor'))
             for device in project['devices']:
                 strategy=payload['strategy'];old=device['profile'].setdefault('adaptation',{}).get('anchorLayout',{})
@@ -54,6 +75,7 @@ def run(workspace,identity,taskid):
             from multires_app.preview.layout_refinement import write_back
             proposal=payload.get('proposal')
             if proposal:
+                preserve_matching_evidence(previous,output,proposal)
                 print('校验参考图布局并写回组件变换…',flush=True);write_back(output/'project.json',proposal)
             project=json.loads((output/'project.json').read_text(encoding='utf8'));known={d['profile']['id'] for d in project['devices']}
             if not set(payload['targets'])<=known:raise ValueError('导出设备不存在')
@@ -66,6 +88,12 @@ def run(workspace,identity,taskid):
                 if payload.get('includePackage',True):
                     print('打包 HWT：'+target,flush=True);export_package(output/'project.json',target,output/'packages'/(target+'.hwt'))
                     item['package']='packages/'+target+'.hwt'
+                    if proposal and target==proposal['target']:
+                        from multires_app.preview.reference_workflow import audit_package
+                        print('重放交互并检查原生脚本坐标：'+target,flush=True)
+                        item['readback']=audit_package(output/'project.json',output/item['package'],target,proposal['state'])
+                        if not item['readback']['geometryPassed']:
+                            raise ValueError('原生脚本回读坐标与求解布局不一致，候选版本未发布；请查看原生资源与状态约束')
                 result.append(item)
             save_json(output/'delivery.json',{'outputs':result,'nativeDeviceTest':False,'proposalApplied':bool(proposal)})
         else:raise ValueError('未知处理步骤')

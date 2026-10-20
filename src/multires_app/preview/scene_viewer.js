@@ -90,7 +90,8 @@ function gestureCapture(c,gesture){
   const n=DATA.nodes[row[0]],t=transform(DATA.nodeComponents[n.id],c.surface),r={x:row[1]*t.sx+t.tx,y:row[2]*t.sy+t.ty,w:row[3]*t.sx,h:row[4]*t.sy};
   return {owner:n.id,index:row[0],row,t,n,r};
  }).reverse().filter(v=>v.r.w>0&&v.r.h>0&&c.start.x>=v.r.x&&c.start.x<=v.r.x+v.r.w&&c.start.y>=v.r.y&&c.start.y<=v.r.y+v.r.h);
- const eligible=candidates.filter(v=>{const axes=DATA.humanActions.find(a=>a.owner===v.owner)?.swipeAxes||[];return !(v.r.w*v.r.h>=area*.85&&v.n.attributes.interceptTouch!=='true'&&axes.length===1&&axes[0]!==axis);});
+ const competing=candidates.some(v=>{const axes=DATA.humanActions.find(a=>a.owner===v.owner)?.swipeAxes||[];return v.r.w*v.r.h>=area*.1&&axes.length===1&&axes[0]===axis;});
+ const eligible=candidates.filter(v=>{const spec=DATA.humanActions.find(a=>a.owner===v.owner),axes=spec?.swipeAxes||[];return !(competing&&spec?.tapOnly&&v.n.attributes.interceptTouch!=='true')&&!((v.r.w*v.r.h>=area*.85||competing&&v.r.w*v.r.h>=area*.1)&&v.n.attributes.interceptTouch!=='true'&&axes.length===1&&axes[0]!==axis);});
  let top=eligible[0];if(top&&top.r.w*top.r.h>=area*.85&&top.n.attributes.interceptTouch!=='true')top=eligible.find(v=>v.r.w*v.r.h<area*.35)||top;
  return top?{...c,...top}:c;
 }

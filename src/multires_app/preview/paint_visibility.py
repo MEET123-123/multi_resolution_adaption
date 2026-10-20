@@ -63,11 +63,16 @@ def raster_snapshot(elements,viewport,asset_root,max_size=(1280,800),background=
             bitmap=ImageOps.fit(original,(w,h),Image.Resampling.LANCZOS) if element.get('scaleType')=='center_crop' else original.resize((w,h),Image.Resampling.LANCZOS)
         elif element['tag']=='Rectangle':
             color=element.get('color','#ffffff');color='#'+color[3:]+color[1:3] if color.startswith('#') and len(color)==9 else color
-            bitmap=Image.new('RGBA',(w,h),color)
+            try:bitmap=Image.new('RGBA',(w,h),color)
+            except (ValueError,TypeError):record.update(status='unrendered-color-expression',supported=False);continue
         elif element['tag'] in {'Text','Time','Date','DateTime','Number','CountDownTime'} and element.get('text'):
             bitmap=Image.new('RGBA',(w,h));color=element.get('color','#ffffff')
             if color.startswith('#') and len(color)==9:color='#'+color[3:]+color[1:3]
-            ImageDraw.Draw(bitmap).text((0,0),str(element['text']),font=font(element.get('size',32)*scale),fill=color)
+            try:ImageDraw.Draw(bitmap).text((0,0),str(element['text']),font=font(element.get('size',32)*scale),fill=color)
+            except (ValueError,TypeError):record.update(status='unrendered-color-expression',supported=False);continue
+        elif element['tag'] in {'Text','Time','Date','DateTime','Number','CountDownTime'}:
+            # An empty runtime string paints nothing; it is not an unsupported effect.
+            record.update(status='transparent');continue
         if bitmap is None:
             record.update(status='unrendered',supported=False);continue
         alpha=bitmap.getchannel('A')

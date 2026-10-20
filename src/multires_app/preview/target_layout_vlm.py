@@ -26,11 +26,13 @@ def local_qwen_matcher(context):
     directory=context['job_directory'];groups=[g for g in context['catalog']['groups'] if not g['locked']]
     if not groups:return {'schema':SCHEMA,'matches':[],'unmatched':[],'provider':'local-qwen-base'}
     pages=[]
-    for index in range(0,len(groups),9):
-        page=groups[index:index+9]
-        pages.append({'atlas':str((directory/f'atlas-{index//9}.png').resolve()),
+    from multires_app.preview.target_layout import make_atlas
+    for index in range(0,len(groups),5):
+        page=groups[index:index+5];atlas=directory/f'vlm-atlas-{index//5}.png'
+        make_atlas(page,context['templates']).save(atlas)
+        pages.append({'atlas':str(atlas.resolve()),
             'groups':[{'id':g['id'],'names':[str(n)[:160] for n in g['names'][:3]],
-                       'roles':g['roles'][:8],'memberCount':len(g['members'])} for g in page]})
+                       'roles':g['roles'][:8],'memberCount':len(g['members']),'rendering':g.get('rendering',{})} for g in page]})
     task={'schema':SCHEMA,'reference':str((directory/'expected.png').resolve()),'pages':pages}
     request=directory/'vlm-request.json';response=directory/'vlm-response.json'
     request.write_text(json.dumps(task,ensure_ascii=False,indent=2),encoding='utf8')
@@ -47,7 +49,10 @@ def local_qwen_matcher(context):
             try:result=subprocess.run(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=timeout,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
             except subprocess.TimeoutExpired as exc:raise ValueError('视觉模型超时；现场保存在 '+str(directory)) from exc
-        if result.returncode or not response.is_file():raise ValueError('视觉模型运行失败，请查看 '+str(directory/'vlm.log'))
+        if result.returncode or not response.is_file():
+            log=(directory/'vlm.log').read_text(encoding='utf8',errors='replace')[-6000:]
+            reason='（GPU / 系统内存分配不足）' if 'OutOfMemoryError' in log or 'out of memory' in log else ''
+            raise ValueError('视觉模型运行失败'+reason+'，请查看 '+str(directory/'vlm.log'))
         return json.loads(response.read_text(encoding='utf8'))
     finally:GPU_LOCK.release()
 
@@ -60,6 +65,9 @@ def _parse(text):
 
 
 def run_worker(args):
+    import faulthandler
+    faulthandler.dump_traceback_later(90,repeat=True)
+    print('Importing local inference runtime...',flush=True)
     import torch
     from PIL import Image
     from multires_app.learning.qwen_runner import load
@@ -78,8 +86,8 @@ def run_worker(args):
         with Image.open(page['atlas']) as im:atlas=im.convert('RGB')
         with Image.open(task['reference']) as im:reference=im.convert('RGB')
         prompt={'schema':SCHEMA,'groups':page['groups'],'output':{'schema':SCHEMA,
-            'matches':[{'id':'g0','bbox':[100,200,300,100],'confidence':.9}],
-            'unmatched':[{'id':'g1','reason':'not present or ambiguous'}]}}
+            'matches':[{'id':page['groups'][0]['id'],'bbox':[100,200,300,100],'confidence':.9}],
+            'unmatched':([{'id':page['groups'][1]['id'],'reason':'not present or ambiguous'}] if len(page['groups'])>1 else [])}}
         conversation=[{'role':'system','content':[{'type':'text','text':system}]},
             {'role':'user','content':[{'type':'image','image':atlas},{'type':'image','image':reference},
                 {'type':'text','text':json.dumps(prompt,ensure_ascii=False)}]}]
@@ -107,6 +115,7 @@ def run_worker(args):
     result={'schema':SCHEMA,'matches':matches,'unmatched':unmatched,'provider':'local-qwen-base',
         'model':str(args.model),'adapter':None,'training':False,'evidence':evidence}
     Path(args.out).write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
+    faulthandler.cancel_dump_traceback_later()
 
 
 def main():

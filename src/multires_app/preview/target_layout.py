@@ -42,13 +42,13 @@ def register_matcher(name: str, matcher: TargetMatcher):
     MATCHERS[name] = matcher
 
 
-def read_reference(data, viewport):
+def read_reference(data, viewport=None):
     if len(data) > 10*1024*1024:raise ValueError('目标图不能超过 10MB')
     try:
         with Image.open(io.BytesIO(data)) as im:
             if im.format not in {'PNG','JPEG','WEBP'}:raise ValueError('仅支持 PNG/JPEG/WebP')
             if im.width*im.height > 20_000_000:raise ValueError('目标图不能超过 2000 万像素')
-            if abs((im.width/im.height)/(viewport['width']/viewport['height'])-1) > .025:
+            if viewport and abs((im.width/im.height)/(viewport['width']/viewport['height'])-1) > .025:
                 raise ValueError('目标图宽高比与设备画布不一致，请裁掉设备外框和系统栏')
             return im.convert('RGB')
     except (OSError, Image.DecompressionBombError) as exc:raise ValueError('无法读取目标图片') from exc
@@ -60,15 +60,20 @@ def _inside(b, region, tolerance=.5):
             and b['y']+b['h'] <= region['y']+region['h']+tolerance)
 
 
-def build_catalog(project, target, state, asset_root):
+def build_catalog(project, target, state, asset_root, *, layout_mode='preserve'):
     """Stable aliases, existing rigid groups, current-phase artwork and hit areas."""
     from multires_app.evaluation.report import elements
     from multires_app.media.media_layout import layout_rows
     from multires_app.preview.paint_visibility import raster_snapshot, read_bitmap
 
+    project['_referenceAssetRoot']=str(Path(asset_root).resolve())
     request = export_request(project, target, state)
     device = next(d for d in project['devices'] if d['profile']['id'] == target)
     layout = next(l for l in device['layouts'] if l['state'] == state)
+    if layout_mode=='reference-first':
+        from multires_app.preview.target_reflow import build_reflow_catalog
+        return build_reflow_catalog(project,request,layout,asset_root)
+    if layout_mode!='preserve':raise ValueError('未知布局模式')
     descriptions = describe_layout(project, layout)
     current = {c['id']:c for c in request['components']}
     if len(current) > 512:raise ValueError('单场景最多支持 512 个组件，请先细分场景')
@@ -186,18 +191,19 @@ def build_catalog(project, target, state, asset_root):
 def make_atlas(groups, templates):
     """Numbered original artwork, on tiles; labels are outside the matched artwork."""
     groups = list(groups);cols = 3;cell_w,cell_h = 270,210
-    image = Image.new('RGB', (cols*cell_w, max(1, math.ceil(len(groups)/cols))*cell_h), '#14212b')
+    image = Image.new('RGB', (cols*cell_w, max(1, math.ceil(len(groups)/cols))*cell_h), '#e7ebee')
     draw = ImageDraw.Draw(image)
     for index,g in enumerate(groups):
         x=(index%cols)*cell_w;y=(index//cols)*cell_h
         draw.rectangle((x+3,y+3,x+cell_w-4,y+cell_h-4), outline='#465c70')
-        draw.text((x+12,y+9), g['id'], fill='white')
+        draw.text((x+12,y+9), g['id'], fill='#14212b')
         thumb=templates[g['id']].copy();thumb.thumbnail((cell_w-24,cell_h-45),Image.Resampling.LANCZOS)
         image.paste(thumb,(x+(cell_w-thumb.width)//2,y+35+(cell_h-45-thumb.height)//2),thumb)
     return image
 
 
 def template_matcher(context):
+    import numpy as np
     from multires_app.preview.reference_matching import match_template
     reference = context['reference'].copy();reference.thumbnail((640,640), Image.Resampling.LANCZOS)
     vp = context['catalog']['viewport'];matches=[];unmatched=[]
@@ -206,6 +212,14 @@ def template_matcher(context):
         b=g['matchBox'];template=context['templates'][g['id']]
         match = match_template(reference, template, (b['w']/vp['width']*reference.width,b['h']/vp['height']*reference.height),
                                scales=(.4,.55,.7,.85,1.,1.2,1.45,1.8,2.2))
+        if match:
+            bitmap=template.resize((match['w'],match['h']),Image.Resampling.LANCZOS)
+            mask=np.asarray(bitmap.getchannel('A'),dtype=float)/255
+            patch=reference.crop((match['x'],match['y'],match['x']+match['w'],match['y']+match['h']))
+            source_mean=(np.asarray(bitmap.convert('RGB'),dtype=float)*mask[:,:,None]).sum(axis=(0,1))/max(1,mask.sum())
+            target_mean=(np.asarray(patch,dtype=float)*mask[:,:,None]).sum(axis=(0,1))/max(1,mask.sum())
+            if abs(source_mean-target_mean).mean()/255>.24:
+                unmatched.append({'id':g['id'],'reason':'灰度形状相似，但颜色证据不一致，拒绝跨组件误匹配'});continue
         if not match or match['confidence'] < .78 or match['peakMargin'] < .035:
             unmatched.append({'id':g['id'],'reason':'模板相似度不足或有多个候选位置'});continue
         matches.append({'id':g['id'],'bbox':[match['x']/reference.width*1000,match['y']/reference.height*1000,
@@ -252,6 +266,12 @@ def _validate_catalog(catalog, request):
         aliases.add(g['id']);ids=g.get('members')
         if not isinstance(ids,list) or not ids or any(not isinstance(cid,str) or cid not in known or cid in seen for cid in ids) or len(set(ids))!=len(ids):raise ValueError('组件目录包含未知或重复成员')
         seen.update(ids)
+        if catalog.get('layoutMode')=='reference-first':
+            originals={c['id']:c for c in request['components']}
+            if g.get('basisBoxes')!={cid:originals[cid]['sourceBBox'] for cid in ids}:
+                raise ValueError('组件目录脚本几何基准已变化')
+            if g.get('currentBoxes')!={cid:originals[cid]['bbox'] for cid in ids}:
+                raise ValueError('组件目录当前几何已变化')
         for key in ('bbox','matchBox'):
             b=g.get(key)
             if (not isinstance(b,dict) or set(b)!={'x','y','w','h'}
@@ -362,37 +382,126 @@ def resolve_matches(project, catalog, answer, *, minimum_confidence=.78, preserv
     # solve again if this scene or any propagated scene cannot accept the proposal.
     while matches:
         try:
-            components,projection=_solve(catalog,request,matches,preserve_relations)
-            proposal={**request['responseTemplate'],'applyScope':apply_scope,'origin':'expected-image-matcher','components':components}
-            validate_and_apply(project,proposal)
+            if catalog.get('layoutMode')=='reference-first':
+                from multires_app.preview.target_reflow import solve_reflow
+                candidates=[];errors=[]
+                for attempt in range(2):
+                    try:
+                        cs,pr=solve_reflow(catalog,request,matches,attempt)
+                        validate_and_apply(project,{**request['responseTemplate'],'applyScope':apply_scope,
+                            'origin':'expected-image-matcher','propagationPolicy':'compatible-layout','components':cs})
+                        score=sum(g['targetOverlapIoU']*g['confidence'] for g in pr['groups'])
+                        candidates.append((score,cs,pr))
+                    except (kiwi.UnsatisfiableConstraint,ValueError) as exc:errors.append(exc)
+                if not candidates:raise errors[-1]
+                _,components,projection=max(candidates,key=lambda c:c[0])
+                # A feasible solution can still move a false observation far
+                # from its target to avoid collisions. Do not count that as a
+                # successful automatic match. Preserve its evidence and solve
+                # the remaining observations again.
+                if answer.get('automatic'):
+                    poor=[g for g in projection['groups'] if g['targetOverlapIoU']<.35]
+                    if poor:
+                        rejected=min(poor,key=lambda g:(g['targetOverlapIoU'],g['confidence']))
+                        matches.pop(rejected['id'])
+                        diagnostics.append({'id':rejected['id'],'reason':'自动定位与约束求解位置不一致，已撤回匹配并重新求解',
+                            'code':'automatic-projection-rejected','targetOverlapIoU':rejected['targetOverlapIoU']})
+                        continue
+            else:
+                components,projection=_solve(catalog,request,matches,preserve_relations)
+                proposal={**request['responseTemplate'],'applyScope':apply_scope,'origin':'expected-image-matcher','components':components}
+                validate_and_apply(project,proposal)
             break
         except (kiwi.UnsatisfiableConstraint,ValueError) as exc:
             alias=min(matches,key=lambda a:(matches[a]['confidence'],a));matches.pop(alias)
             diagnostics.append({'id':alias,'reason':'约束/跨状态校验冲突，保持原布局：'+str(exc)[:350]})
     else:components=[];projection={'backend':'kiwisolver','groups':[],'preserveRelations':preserve_relations}
-    diagnostics.extend({'id':g['id'],'reason':'约束投影后与期望框差异较大，请查看对比图；可调整目标图或关闭居中/边缘保留'}
+    native_ids={g['id'] for g in projection.get('nativeScaleConstraints',[])}
+    diagnostics.extend({'id':g['id'],'reason':('当前导出器的位图字库需跨场景统一尺寸，目标尺寸已投影到可导出的大小；请查看对比图' if g['id'] in native_ids else
+        '目标框与可导出的组比例、完整画布边界或非重叠条件不一致；请查看实际求解框和对比图')}
         for g in projection.get('groups',[]) if g['targetOverlapIoU']<.5)
     return {**request['responseTemplate'],'applyScope':apply_scope,'origin':'expected-image-matcher','components':components,
+        'propagationPolicy':'compatible-layout' if catalog.get('layoutMode')=='reference-first' else 'component',
         'matching':{'method':answer.get('provider','custom'),'schema':SCHEMA,'minimumConfidence':minimum_confidence,
             'candidateGroups':initial,'acceptedGroups':len(matches),'totalGroups':len(catalog['groups']),
+            'layoutMode':catalog.get('layoutMode','preserve'),
+            'providerEvidence':{k:answer[k] for k in ('reviewedProvider','modelError','notes','recoveredByTemplate') if k in answer},
             'diagnostics':diagnostics,'projection':projection,'noTraining':True,
-            'scope':'只调整已有组件组的几何；未匹配组保持原布局。动画/状态/资源身份不变。'}}
+            'scope':('参考图位置优先；原布局关系为弱约束。未匹配可见组可让位，背景与全屏手势固定；不复制目标图中的重复组件。'
+                     if catalog.get('layoutMode')=='reference-first' else '只调整已有组件组的几何；未匹配组保持原布局。动画/状态/资源身份不变。')}}
 
 
 def match_target_layout(project,target,state,image_bytes,asset_root,*,strategy='template',minimum_confidence=.78,
-                        preserve_relations=True,apply_scope='matching-components'):
+                        preserve_relations=True,apply_scope='matching-components',layout_mode='preserve',observations=None,
+                        source_image_bytes=None,replay_job=None):
     if not 0<=minimum_confidence<=1 or apply_scope not in {'state','matching-components'}:raise ValueError('匹配配置无效')
     request=export_request(project,target,state);reference=read_reference(image_bytes,request['viewport'])
-    catalog,templates=build_catalog(project,target,state,asset_root)
+    catalog,templates=build_catalog(project,target,state,asset_root,layout_mode=layout_mode)
     matcher=MATCHERS.get(strategy)
     if matcher is None:raise ValueError('未知目标布局匹配器：'+str(strategy))
     job=Path(asset_root)/'target-matching'/uuid.uuid4().hex[:12];job.mkdir(parents=True)
     reference.save(job/'expected.png')
+    source_evidence=[];observation_templates={}
+    if source_image_bytes is not None:
+        source_device=project.get('sourceDevice')
+        if not source_device:raise ValueError('缺少原始直板机场景缓存')
+        source=read_reference(source_image_bytes);source.save(job/'source.png')
+        if abs((source.width/source.height)/(source_device['viewport']['width']/source_device['viewport']['height'])-1)>.025:
+            # Real captures can be another phone height. Re-evaluate the original
+            # script at that viewport; stretching cached screenshot boxes changes
+            # bottom anchors and was incorrectly rejecting all real pairs.
+            from multires_app.interaction.interaction_semantics import replay_human_state
+            from multires_app.pipeline.source_comparison import packed_snapshot
+            vp={'width':source_device['viewport']['width'],'height':source_device['viewport']['width']*source.height/source.width}
+            graph_state=next(s for s in project['graph']['states'] if s['id']==state)
+            model={**project['model'],'assetNames':list(project['assets'])}
+            rt=replay_human_state(model,vp['width'],vp['height'],graph_state,project['assets'],verify_hit=False)
+            source_device={**source_device,'viewport':vp,'layouts':[packed_snapshot(project,rt,state)]}
+        source_project={**project,'devices':[source_device]}
+        source_catalog,source_templates=build_catalog(source_project,source_device['profile']['id'],state,asset_root,layout_mode=layout_mode)
+        source_groups={tuple(sorted(g['members'])):g for g in source_catalog['groups']}
+        vp=source_device['viewport']
+        for group in catalog['groups']:
+            sg=source_groups.get(tuple(sorted(group['members'])))
+            if group['locked'] or not sg or sg['locked']:continue
+            b=sg['matchBox'];box=[b['x']/vp['width']*source.width,b['y']/vp['height']*source.height,
+                (b['x']+b['w'])/vp['width']*source.width,(b['y']+b['h'])/vp['height']*source.height]
+            if box[0]<0 or box[1]<0 or box[2]>source.width or box[3]>source.height or min(box[2]-box[0],box[3]-box[1])<8:continue
+            observed=source.crop(tuple(round(v) for v in box)).convert('RGBA')
+            # A screenshot crop includes wallpaper between glyphs. Retain the
+            # script-rendered alpha support so background features cannot steal
+            # the correspondence from the actual clock/card/icon.
+            silhouette=source_templates.get(sg['id'])
+            if silhouette is not None:
+                observed.putalpha(silhouette.convert('RGBA').getchannel('A').resize(observed.size,Image.Resampling.LANCZOS))
+            observation_templates[group['id']]=observed
+            source_evidence.append({'id':group['id'],'pixelBox':box,'basis':'source-script-group-geometry',
+                'alphaSupport':'source-script-render' if silhouette is not None else 'opaque-observation','manualCoordinates':False})
+        (job/'source-observations.json').write_text(json.dumps(source_evidence,ensure_ascii=False,indent=2),encoding='utf8')
     (job/'catalog.json').write_text(json.dumps(catalog,ensure_ascii=False,indent=2),encoding='utf8')
     eligible=[g for g in catalog['groups'] if not g['locked']]
     for index in range(0,len(eligible),9):make_atlas(eligible[index:index+9],templates).save(job/f'atlas-{index//9}.png')
-    context={'catalog':catalog,'reference':reference,'templates':templates,'asset_root':Path(asset_root),'job_directory':job}
-    try:answer=matcher(context)
+    context={'catalog':catalog,'reference':reference,'templates':templates,'asset_root':Path(asset_root),'job_directory':job,
+             'minimum_confidence':minimum_confidence,'observation_templates':observation_templates}
+    try:
+        if observations is not None:
+            for field in ('target','state','baseDigest'):
+                if field in observations and observations[field]!=catalog[field]:raise ValueError('定位标注与当前布局不匹配：'+field)
+            validate_matches(observations,catalog,minimum_confidence)
+            answer={**observations,'provider':'reviewed-group-boxes','reviewedProvider':str(observations.get('provider','manual'))[:160]}
+        elif replay_job:
+            import shutil
+            previous=Path(replay_job).resolve()
+            old_catalog=json.loads((previous/'catalog.json').read_text(encoding='utf8'))
+            if any(old_catalog[k]!=catalog[k] for k in ('baseDigest','target','state','layoutMode')):raise ValueError('自动匹配缓存与当前布局不一致')
+            with Image.open(previous/'expected.png') as old_image:
+                if old_image.convert('RGB').size!=reference.size or old_image.convert('RGB').tobytes()!=reference.tobytes():raise ValueError('自动匹配缓存的参考图不一致')
+            answer=json.loads((previous/'matches.json').read_text(encoding='utf8'))
+            if answer.get('automatic') is not True:raise ValueError('只允许重放代码自动匹配证据')
+            answer={**answer,'replayedFrom':str(previous),'notes':[*answer.get('notes',[]),'复用自动定位证据，重新运行当前约束求解和反写校验。']}
+            for name in ('automatic-candidates.json','automatic-overlay.png'):
+                if (previous/name).is_file():shutil.copy2(previous/name,job/name)
+        else:answer=matcher(context)
     except Exception as exc:
         (job/'error.json').write_text(json.dumps({'error':str(exc),'strategy':strategy},ensure_ascii=False),encoding='utf8')
         raise
@@ -400,6 +509,7 @@ def match_target_layout(project,target,state,image_bytes,asset_root,*,strategy='
     result=resolve_matches(project,catalog,answer,minimum_confidence=minimum_confidence,
         preserve_relations=preserve_relations,apply_scope=apply_scope)
     result['reference']={'sha256':hashlib.sha256(image_bytes).hexdigest(),'size':list(reference.size)}
+    if source_image_bytes is not None:result['reference']['sourceObservationGroups']=len(source_evidence)
     relative=job.relative_to(asset_root).as_posix()
     result['artifacts']={name:relative+'/'+filename for name,filename in
         [('expected','expected.png'),('before','before.png'),('after','after.png'),('report','report.html'),('catalog','catalog.json')]}
@@ -411,7 +521,7 @@ def match_target_layout(project,target,state,image_bytes,asset_root,*,strategy='
     after=next(l for dev in updated['devices'] if dev['profile']['id']==target for l in dev['layouts'] if l['state']==state)
     result['rendering']={'before':render(project,d,l,Path(asset_root)/'assets',job/'before.png'),
                          'after':render(updated,d,after,Path(asset_root)/'assets',job/'after.png')}
-    result['validation']={'affectedStates':validation['affectedStates'],'nativeDeviceTest':False}
+    result['validation']={'affectedStates':validation['affectedStates'],'skippedStates':validation.get('skippedStates',[]),'nativeDeviceTest':False}
     (job/'proposal.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
     _write_report(job,result)
     return result
@@ -427,7 +537,7 @@ def _write_report(job,result):
         'figure{margin:0;flex:1;min-width:0}img{max-width:100%;max-height:65vh;object-fit:contain}figcaption{margin:12px 0}'
         'pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1a2432;padding:16px}a{color:#85e2cf}</style>'
         f'<h1>目标布局匹配 · {title}</h1><p>采纳 {result["matching"]["acceptedGroups"]} 组；'
-        '未匹配或冲突组保持原布局。离线渲染不等同于真机。</p><section>'+figures+
+        '参考图优先模式允许未匹配可见组让位。离线渲染不等同于真机；目标图中的新增/重复实例需单独建模。</p><section>'+figures+
         '</section><p><a href="proposal.json">布局建议 JSON</a> · <a href="catalog.json">组件组目录</a> · '
         '<a href="matches.json">匹配器输出</a></p><h2>匹配与约束诊断</h2><pre>'+text+'</pre></html>')
     (job/'report.html').write_text(page,encoding='utf8')
@@ -442,3 +552,55 @@ def _qwen(context):
 
 
 register_matcher('qwen',_qwen)
+
+
+def hybrid_matcher(context):
+    """Semantic correspondence first, then local pixel alignment, without training.
+
+    NCC is deliberately local after grounding: a duplicated clock elsewhere in
+    the target must not steal an already established semantic correspondence.
+    """
+    from multires_app.preview.reference_matching import match_template
+    try:answer=_qwen(context)
+    except ValueError as exc:
+        answer=template_matcher(context);answer['provider']='masked-template (VLM unavailable)'
+        answer['modelError']=str(exc);answer['notes']=['视觉模型未完成，本次结果来自模板匹配；可用组件组校正继续。']
+        return answer
+    answer=copy.deepcopy(answer)
+    reference=context['reference'].copy();reference.thumbnail((960,960),Image.Resampling.LANCZOS)
+    groups={g['id']:g for g in context['catalog']['groups']};evidence=[]
+    for row in answer['matches']:
+        alias=row['id'];template=context['templates'].get(alias)
+        if template is None:continue
+        x,y,w,h=row['bbox'];x=x*reference.width/1000;y=y*reference.height/1000
+        w=w*reference.width/1000;h=h*reference.height/1000
+        left=max(0,int(x-w*.35));top=max(0,int(y-h*.35))
+        right=min(reference.width,math.ceil(x+w*1.35));bottom=min(reference.height,math.ceil(y+h*1.35))
+        region=reference.crop((left,top,right,bottom));b=groups[alias]['matchBox']
+        scale=min(w/b['w'],h/b['h'])
+        match=match_template(region,template,(b['w']*scale,b['h']*scale),
+                             scales=(.75,.85,.925,1.,1.075,1.15,1.25))
+        if match and match['confidence']>=.72 and match['peakMargin']>=.025:
+            row['semanticBox']=row['bbox'];row['bbox']=[(left+match['x'])/reference.width*1000,
+                (top+match['y'])/reference.height*1000,match['w']/reference.width*1000,match['h']/reference.height*1000]
+            row['pixelEvidence']={'ncc':match['confidence'],'peakMargin':match['peakMargin']}
+            evidence.append({'id':alias,'status':'local-template-refined',**row['pixelEvidence']})
+    # High quality, unambiguous reused artwork can recover model omissions.
+    fallback=template_matcher(context);returned={r['id'] for r in answer['matches']}
+    recovered=[r for r in fallback['matches'] if r['id'] not in returned]
+    answer['matches'].extend(recovered);returned.update(r['id'] for r in recovered)
+    answer['unmatched']=[r for r in answer.get('unmatched',[]) if r['id'] not in returned]
+    answer['provider']='qwen+local-masked-ncc';answer['refinementEvidence']=evidence
+    answer['recoveredByTemplate']=[r['id'] for r in recovered]
+    return answer
+
+
+register_matcher('hybrid',hybrid_matcher)
+
+
+def _automatic(context):
+    from multires_app.preview.automatic_matching import automatic_matcher
+    return automatic_matcher(context)
+
+
+register_matcher('auto',_automatic)

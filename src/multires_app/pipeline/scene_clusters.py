@@ -250,6 +250,43 @@ class LayoutConflict(ValueError):pass
 
 
 def schedule_device(project,device,algorithm,preserve_existing=False,_forced_full=None,_resume_prefix=0):
+    """Fit native resource families before giving up on a crowded viewport.
+
+    A bitmap font has one baked size per device. Selecting that size from each
+    component independently can make the *combined* clock/popup/footer graph
+    infeasible. Retry a bounded set of common preferred sizes; all hard rules,
+    user minimum scales and native cross-state size equalities remain enforced.
+    """
+    from multires_app.layout.anchor_solver import RequiredConstraintError
+    options={**project.get('sourceProfile',{}).get('adaptation',{}).get('anchorLayout',{}),
+             **device['profile'].get('adaptation',{}).get('anchorLayout',{})}
+    eligible=(getattr(algorithm,'name','')=='anchor-theme-layout-v1' and not preserve_existing and
+        not _forced_full and not _resume_prefix and options.get('allowAutomaticScaleBackoff',True) and
+        options.get('resourceScalePolicy')!='fixed' and not options.get('groups') and not options.get('constraints') and
+        not any(c.get('layout') for c in project['components']) and not device.get('manualComponentAnchors'))
+    if not eligible:return _schedule_device(project,device,algorithm,preserve_existing,_forced_full,_resume_prefix)
+    config=device['profile'].setdefault('adaptation',{}).setdefault('anchorLayout',{})
+    original=config.get('resourceScaleFactor');base=float(options.get('resourceScaleFactor',1.));attempts=[]
+    try:
+        for factor in (1.,.8,.6,.45):
+            if factor!=1:config['resourceScaleFactor']=base*factor
+            try:
+                result=_schedule_device(project,device,algorithm,preserve_existing,_forced_full,_resume_prefix)
+                if attempts:device['automaticScaleBackoff']={'factor':factor,'attempts':attempts,'policy':'common native resource family size; required constraints retained'}
+                else:device.pop('automaticScaleBackoff',None)
+                return result
+            except RequiredConstraintError as exc:
+                label=exc.constraint_id or ''
+                if not (label.startswith('flow:') or ':stable-resource:' in label or ':inside-' in label):raise
+                attempts.append({'factor':factor,'constraint':label,'reason':str(exc)[:350]})
+                if factor==.45:raise
+    except Exception:
+        if original is None:config.pop('resourceScaleFactor',None)
+        else:config['resourceScaleFactor']=original
+        raise
+
+
+def _schedule_device(project,device,algorithm,preserve_existing=False,_forced_full=None,_resume_prefix=0):
     forced_full=set(_forced_full or [])
     project.get('_stateGuards',{}).pop(device['profile']['id'],None)
     if getattr(algorithm,'name','')!='anchor-theme-layout-v1':
@@ -497,7 +534,7 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
                             # Retry the family as one full layout at its first
                             # state, then reuse that affine in every phase.
                             restart=next(i for i,l in enumerate(device['layouts']) if l['state']==native_first[guard])
-                            return schedule_device(project,device,algorithm,False,forced_full|{guard},restart)
+                            return _schedule_device(project,device,algorithm,False,forced_full|{guard},restart)
                         if not can_expand:raise
                         fixed.pop(blocked);request['fixedComponents']=[cid for cid in request['fixedComponents'] if cid!=blocked]
                         request['affectedComponents']=sorted(set(request['affectedComponents'])|{blocked})
@@ -522,6 +559,12 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
         anchor_warnings=[]
         anchored={cid:dict(anchor['transform']) for cid,anchor in device.get('manualComponentAnchors',{}).items()
                   if cid in current and same_geometry(current[cid],anchor)}
+        if device.get('manualComponentAnchorPolicy')=='compatible-layout' and len(anchored)!=len(device.get('manualComponentAnchors',{})):
+            anchored={}
+        if device.get('manualComponentAnchorContext'):
+            from multires_app.preview.layout_refinement import context_digest
+            if context_digest(current)!=device['manualComponentAnchorContext']:anchored={}
+        if any(mapping.get(cid)!=t for cid,t in device.get('manualComponentAnchorObstacleTransforms',{}).items() if cid in current):anchored={}
         if anchored:
             from multires_app.preview.layout_refinement import validate_geometry_change
             from multires_app.layout.adaptive_layout import safe_region
@@ -548,6 +591,8 @@ def schedule_device(project,device,algorithm,preserve_existing=False,_forced_ful
             layout["adaptationReview"]=review(all_components,mapping,project["sourceProfile"],device["profile"],{"logicalViewport":device["viewport"],"model":project["model"],"sourceComponentDescriptors":source_descriptions.get(sid,{})})
         else:layout.pop("adaptationReview",None)
         if anchor_warnings:layout.setdefault('adaptationReview',[]).extend(anchor_warnings)
+    from multires_app.interaction.regional_gestures import apply_regional_transforms
+    apply_regional_transforms(project,device)
     device["layoutClusters"]={k:v for k,v in analysis.items() if k not in {"descriptions","requests"}}
     device["layoutClusters"]["summary"].update(algorithmCalls=calls,submittedComponents=submitted,
                                               naiveComponentRequests=sum(len(d) for d in analysis["descriptions"].values()),

@@ -43,6 +43,20 @@ class MediaLayoutTests(unittest.TestCase):
     def test_time_sequence_detected_but_user_variant_and_glyphs_not(self):
         self.assertEqual(temporal_ids(self.model),{self.movie})
 
+    def test_static_ui_easing_uses_settled_pose_while_sequence_uses_first_frame(self):
+        lock=self.source/'unlock/lockscreen/manifest.xml'
+        lock.write_text('''<Lockscreen screenWidth="1080">
+          <Var name="easing" expression="min(#time/1000,1)"/>
+          <Group y="-800+800*#easing"><Image name="static-card" x="100" y="900" src="seq_0.png"/></Group>
+          <Image name="sequence" x="500" y="100" src="seq.png" srcid="int(#time/100)%3"/>
+        </Lockscreen>''',encoding='utf8')
+        model=load_model(self.source);order=[u for u,n in model['nodes'].items() if n['tag'] in VISUAL]
+        model['assetNames']=list(self.assets);project={'model':model,'nodeOrder':order,'assetOrder':list(self.assets),'assets':self.assets,'graph':{'semantics':{}}}
+        rt=Runtime(model,1080,2160,time_ms=2400);packed=packed_snapshot(project,rt,'settled')
+        rows={model['nodes'][order[r[0]]]['attributes'].get('name'):r for r in layout_rows(project,packed)}
+        self.assertEqual(rows['static-card'][2],900)
+        self.assertEqual(rows['sequence'][3:5],[100,80])
+
     def test_autonomous_position_reference_excludes_finite_and_human_motion(self):
         from multires_app.media.media_layout import autonomous_position_ids
         lock=self.source/'unlock/lockscreen/manifest.xml'

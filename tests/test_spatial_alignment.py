@@ -7,6 +7,18 @@ from multires_app.pipeline.scene_clusters import transformed_box
 
 
 class AlignmentTests(unittest.TestCase):
+    def test_near_center_child_line_does_not_conflict_with_group_centering(self):
+        cs=[comp('weather',(408,145,341,63),role='header'),comp('clock',(361,213,354,259),role='header'),comp('date',(412,776,260,42))]
+        visuals={'weather':{'x':416,'y':150,'w':255,'h':53},'clock':{'x':369,'y':218,'w':335,'h':249},'date':{'x':420,'y':781,'w':247,'h':32}}
+        context=ctx(1600,1000,sourceStableVisualBounds=visuals,stableVisualBounds=visuals)
+        AnchorThemeLayout().layout_scene(cs,SOURCE,{'resolutionPx':{'width':1600,'height':1000}},context)
+        plan=context['adaptationPlan'];soft=[r for r in plan['spatialAlignments'] if r.get('priority')=='strong']
+        self.assertEqual(len(soft),1);self.assertIn('centering',soft[0]['relaxation'])
+        self.assertTrue(all('x' in g['centerRequiredAxes'] for g in plan['groups']))
+        self.assertTrue(plan['validation']['required_ok'])
+        self.assertFalse(alignment_errors([{**soft[0],'firstRect':visuals['weather'],'lastRect':visuals['date']}],
+            {'weather':{'sx':1,'sy':1,'tx':0,'ty':0},'date':{'sx':1,'sy':1,'tx':20,'ty':0}}))
+
     def test_resolved_edges_and_centers_on_both_axes(self):
         es=[{'id':n,'bbox':dict(zip(('x','y','w','h'),b)),'current_visual_bbox':dict(zip(('x','y','w','h'),b))}
             for n,b in [('a',(100,100,100,100)),('b',(100,600,200,100)),('c',(700,100,80,200))]]

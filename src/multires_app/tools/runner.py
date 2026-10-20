@@ -22,6 +22,9 @@ COMMANDS={
     'feedback-loop':'feedback_loop',
     'layout-lab':'layout_lab',
     'target-layout':'target_layout',
+    'reference-workflow':'reference_workflow',
+    'reference-pairs':'reference_pairs',
+    'corpus-adapt':'corpus_adapt',
     'workbench':'workbench',
 }
 

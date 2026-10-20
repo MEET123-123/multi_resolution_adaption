@@ -354,7 +354,7 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                                    'spatialFlowPolicy':'source-disjoint-adaptive-gaps',
                                    'spatialAlignmentPolicy':'source-visible-shared-lines-v1',
                                    'spatialAlignments':list({(r['first'],r['last'],r['axis'],r['factor']):
-                                       {k:r[k] for k in ('first','last','axis','factor','scope')} for r in ir.get('spatialAlignments',[]) if 'scope' in r}.values()),
+                                       {k:r[k] for k in ('first','last','axis','factor','scope','priority','relaxation') if k in r} for r in ir.get('spatialAlignments',[]) if 'scope' in r}.values()),
                                    'layoutIRRef':digest,'validation':validation,
                                    'groups':[{'id':g['id'],'members':g['members'],'container':g['container'],'anchor':g['anchor'],
                                               'sourceBounds':g['bbox'],'targetBounds':boxes[g['id']],'confidence':g['confidence'],

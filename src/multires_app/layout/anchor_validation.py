@@ -14,6 +14,32 @@ def validate_export(project,device):
         membership=scene_membership_errors(project,device,layout)
         if membership:raise RequiredConstraintError('Scene membership changed before export: '+str(membership[:5])+'; state='+layout['state'])
         plan=layout.get('adaptationPlan',{})
+        if plan.get('policy')=='component-refinement-preserved-transforms':
+            if layout['transforms']!=plan.get('baselineTransforms'):
+                raise RequiredConstraintError('refined component changed without a verified reference plan; state='+layout['state'])
+            checks+=len(layout['transforms'])
+            continue
+        if plan.get('policy')=='reviewed-layout-json' and plan.get('placementPolicy')=='reference-first':
+            # Reference-first replaces source screen anchors, not physical or
+            # interaction validity. Recheck those contracts at every export.
+            from multires_app.preview.layout_refinement import validate_geometry_change,reference_collision_bounds,collision_exemptions
+            from multires_app.layout.adaptive_layout import safe_region
+            from multires_app.layout.offscreen_geometry import waiting_errors
+            desc=describe_layout(project,layout);before=plan['referenceBaselineTransforms']
+            changed={cid for cid,t in layout['transforms'].items() if t!=before.get(cid)}
+            groups={}
+            for c in project['components']:
+                if c.get('layout',{}).get('group'):groups.setdefault(c['layout']['group'],[]).append(c['id'])
+            region=safe_region(project['sourceProfile'],device['profile'],{'logicalViewport':device['viewport']})
+            validate_geometry_change(desc,before,layout['transforms'],changed,
+                collision_exemptions(desc,True),region,layout['state'],groups,
+                reference_collision_bounds(project,device['profile']['id'],layout['state']))
+            waiting=waiting_errors(project,device,layout)
+            if waiting:raise RequiredConstraintError('waiting artwork entered canvas before its interaction: '+str(waiting[:1]))
+            for cid,t in layout['transforms'].items():
+                if not all(math.isfinite(v) for v in t.values()) or min(t['sx'],t['sy'])<=0:raise RequiredConstraintError('invalid export transform: '+cid)
+            checks+=len(changed)
+            continue
         if plan.get('policy')!='nine-grid-anchor-kiwi':continue
         from multires_app.layout.visual_scaling import resource_scale
         from multires_app.layout.adaptive_layout import safe_region
