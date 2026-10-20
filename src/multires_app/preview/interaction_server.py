@@ -13,7 +13,7 @@ import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urlsplit, parse_qs
 
 from multires_app.interaction.interaction_semantics import perform_action, replay_human_state, hit_test
 from multires_app.pipeline.scene_pipeline import load_scene_algorithm, export_package
@@ -292,7 +292,7 @@ class InteractiveSession:
         return {"target":result["target"],"changedAttributes":result["changedAttributes"],"intrinsicSizingWarnings":len(result["intrinsicSizingWarnings"]),"package":"adapted.hwt",'historyFile':'interaction-history.json'}
 
 
-def serve_project(project_path,port=8765):
+def serve_project(project_path,port=8765,workbench=None):
     catalog=project_path.is_dir()
     root=project_path.resolve() if catalog else project_path.resolve().parent
     project=None if catalog else json.loads(project_path.read_text(encoding="utf-8"))
@@ -304,10 +304,18 @@ def serve_project(project_path,port=8765):
 
         def do_GET(self):
             if self.headers.get("Host")!=f"127.0.0.1:{self.server.server_port}":self.send_error(403);return
+            if workbench is not None and urlsplit(self.path).path in {'/','/index.html'}:
+                config=json.dumps({'token':token,'api':'/api/workbench/'})
+                page=Path(__file__).with_name('workbench.html').read_text(encoding='utf8')
+                script=Path(__file__).with_name('workbench_ui.js').read_text(encoding='utf8')
+                data=page.replace('__WORKBENCH_CONFIG__',config).replace('__SCRIPT__',script).encode('utf8')
+                self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Length',str(len(data)));self.send_header('Cache-Control','no-store');self.end_headers()
+                if self.command!='HEAD':self.wfile.write(data)
+                return
             name=unquote(urlsplit(self.path).path).lstrip("/") or ("index.html" if catalog else "preview.html")
-            artifacts={'preview.html','validation.json','live-validation.json','report.json','layout-clusters.json','components.json','scene-graph.json','README.md','interaction-ir.json','interaction-bindings.json','engine-compatibility.json','scene-analysis.json'}
-            pattern=r'(?:[A-Za-z0-9_-]+/scenes/)?(?:'+'|'.join(re.escape(n) for n in artifacts)+r'|assets/.+|scripts/.+|live/.+|target-matching/.+)'
-            allowed=(catalog and name=='index.html') or (bool(re.fullmatch(pattern,name)) if catalog else name in artifacts or name.startswith(("assets/","scripts/","live/","target-matching/")))
+            artifacts={'preview.html','validation.json','live-validation.json','report.json','layout-clusters.json','components.json','scene-graph.json','README.md','interaction-ir.json','interaction-bindings.json','engine-compatibility.json','scene-analysis.json','workbench-analysis.json','workbench-strategies.json','delivery.json'}
+            pattern=r'(?:[A-Za-z0-9_-]+/scenes/)?(?:'+'|'.join(re.escape(n) for n in artifacts)+r'|assets/.+|scripts/.+|packages/.+|live/.+|target-matching/.+)'
+            allowed=(catalog and name=='index.html') or (bool(re.fullmatch(pattern,name)) if catalog else name in artifacts or name.startswith(("assets/","scripts/","packages/","live/","target-matching/")))
             if not allowed:self.send_error(404);return
             path=(root/name).resolve()
             if not path.is_relative_to(root) or not path.is_file():self.send_error(404);return
@@ -355,8 +363,20 @@ def serve_project(project_path,port=8765):
             try:length=int(self.headers.get("Content-Length","0"))
             except ValueError:self.send_json(400,{"error":"invalid content length"});return
             limit=14*1024*1024 if urlsplit(self.path).path.endswith(('/match','/matchtarget')) else 1024*1024
+            if workbench is not None and urlsplit(self.path).path=='/api/workbench/upload':limit=100*1024*1024
             if length<1 or length>limit:self.send_json(413,{"error":"request too large"});return
             try:
+                operation=urlsplit(self.path).path
+                if workbench is not None and operation.startswith('/api/workbench/'):
+                    operation_name=operation.removeprefix('/api/workbench/')
+                    if operation_name=='upload':
+                        identity=parse_qs(urlsplit(self.path).query).get('job',[''])[0]
+                        result=workbench.upload(identity,self.rfile,length)
+                    else:
+                        body=json.loads(self.rfile.read(length))
+                        if not isinstance(body,dict):raise ValueError('工作台参数必须为对象')
+                        result=workbench.dispatch(operation_name,body)
+                    self.send_json(200,result);return
                 body=json.loads(self.rfile.read(length));operation=urlsplit(self.path).path
                 output_root=root;selected_project=project
                 if catalog:

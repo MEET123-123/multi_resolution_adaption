@@ -22,6 +22,7 @@ COMMANDS={
     'feedback-loop':'feedback_loop',
     'layout-lab':'layout_lab',
     'target-layout':'target_layout',
+    'workbench':'workbench',
 }
 
 

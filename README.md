@@ -40,6 +40,7 @@ multi-res/
 .\.venv\Scripts\python.exe .\multires.py --help
 .\.venv\Scripts\python.exe .\multires.py serve .\theme\adaptation --port 8766
 .\.venv\Scripts\python.exe .\multires.py tools --help
+.\.venv\Scripts\python.exe .\multires.py tools workbench --port 8790
 ```
 
 启动服务后打开 [主题预览索引](http://127.0.0.1:8766/)。完整环境准备、单包转换、导出与后台服务命令见 [快速使用](docs/QUICKSTART.md)。
@@ -50,6 +51,7 @@ multi-res/
 |---|---|
 | 加入自己的布局算法 | [算法接入说明](docs/CUSTOM_LAYOUT.md) |
 | 用目标布局图匹配原组件并反写脚本（无需训练） | [目标图匹配](docs/guides/TARGET_LAYOUT_MATCHING.md)、`multires.py tools target-layout` |
+| 在一个页面完成上传、场景聚类、布局策略、参考图匹配和脚本生成 | [主题适配工作台](docs/guides/THEME_WORKBENCH.md)、`multires.py tools workbench` |
 | 理解交互如何变成布局 | [项目结构与处理流程](docs/PROJECT_STRUCTURE.md) |
 | 规划鸿蒙 5.0 及以上主题适配 | [规范与迁移方案](docs/guides/HARMONYOS5_MIGRATION.md)、[逐文件改造清单](docs/guides/HARMONYOS5_IMPLEMENTATION_PLAN.md) |
 | 修复动画提前出现、连续跳转和时间样式状态 | [通用交互动画规则](docs/guides/INTERACTION_ANIMATION.md) |
