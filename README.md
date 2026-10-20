@@ -49,6 +49,7 @@ multi-res/
 | 要做什么 | 看哪里 |
 |---|---|
 | 加入自己的布局算法 | [算法接入说明](docs/CUSTOM_LAYOUT.md) |
+| 用目标布局图匹配原组件并反写脚本（无需训练） | [目标图匹配](docs/guides/TARGET_LAYOUT_MATCHING.md)、`multires.py tools target-layout` |
 | 理解交互如何变成布局 | [项目结构与处理流程](docs/PROJECT_STRUCTURE.md) |
 | 规划鸿蒙 5.0 及以上主题适配 | [规范与迁移方案](docs/guides/HARMONYOS5_MIGRATION.md)、[逐文件改造清单](docs/guides/HARMONYOS5_IMPLEMENTATION_PLAN.md) |
 | 修复动画提前出现、连续跳转和时间样式状态 | [通用交互动画规则](docs/guides/INTERACTION_ANIMATION.md) |

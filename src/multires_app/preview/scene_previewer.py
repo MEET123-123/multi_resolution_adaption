@@ -17,7 +17,7 @@ def preview_layout(layout):
     return result
 
 
-def build_scene_preview(project,out:Path):
+def scene_preview_html(project):
     if 'sourceDevice' not in project:
         from multires_app.pipeline.source_comparison import build_source_device
         project['sourceDevice']=build_source_device(project)
@@ -35,4 +35,8 @@ def build_scene_preview(project,out:Path):
     data=json.dumps(payload,ensure_ascii=False,separators=(',',':')).replace('</','<\\/')
     script='const DATA='+data+';\n'+Path(__file__).with_name('scene_viewer.js').read_text(encoding='utf-8')+'\n'+Path(__file__).with_name('layout_refinement_ui.js').read_text(encoding='utf-8')+'\n'+Path(__file__).with_name('anchor_layout_ui.js').read_text(encoding='utf-8')
     page=Path(__file__).with_name('scene_viewer.html').read_text(encoding='utf-8').replace('__SCRIPT__',script)
-    out.write_text(page,encoding='utf-8')
+    return page
+
+
+def build_scene_preview(project,out:Path):
+    out.write_text(scene_preview_html(project),encoding='utf-8')

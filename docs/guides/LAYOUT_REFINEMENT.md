@@ -1,6 +1,8 @@
 # 布局 JSON 微调与参考图匹配
 
-两条路线都先生成建议，再审查、应用。项目不调用大模型服务；请求 JSON 可自行交给任何模型。主题中的变量、命令、资源路径不会从模型返回值中执行或替换。
+两条路线都先生成建议，再审查、应用。请求 JSON 可自行交给任何模型。主题中的变量、命令、资源路径不会从模型返回值中执行或替换。
+
+新增的**无需训练目标图匹配**支持本地 Qwen3-VL、组件组图集、约束投影和原素材重渲染，使用 `multires.py tools target-layout`，详见 [目标图匹配说明](TARGET_LAYOUT_MATCHING.md)。本页其余内容描述保留的基础 JSON 与模板匹配接口。下文旧命令 `python layout_refinement.py ...` 在整理后的项目中应使用 `$env:PYTHONPATH='src'; python -m multires_app.preview.layout_refinement ...`。
 
 ## 离线 JSON 流程
 

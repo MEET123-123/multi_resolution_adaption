@@ -1,5 +1,5 @@
 // Offline JSON exchange stays local. Image matching uses the loopback service.
-let refinementProposal=null,referenceFile=null;
+let refinementProposal=null,referenceFile=null,referenceURL=null;
 function downloadLayoutJSON(value,name){
  const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));
  const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -30,8 +30,17 @@ async function localRefinementRequest(){
 }
 async function refinementRequest(){return live?api('refinerequest',{session:liveSession}):localRefinementRequest();}
 function showRefinement(){
- $('refinementStatus').textContent=refinementProposal?`待审查 ${refinementProposal.components?.length||0} 项调整`:'未加载布局建议';
- $('applyRefinement').disabled=!refinementProposal;$('downloadProposal').disabled=!refinementProposal;
+ const m=refinementProposal?.matching;
+ $('refinementStatus').textContent=refinementProposal?(m?.schema==='target-layout-matches/1'?`采纳 ${m.acceptedGroups} / ${m.totalGroups} 组，${refinementProposal.components.length} 个组件待审查`:`待审查 ${refinementProposal.components?.length||0} 项调整`):'未加载布局建议';
+ $('applyRefinement').disabled=!refinementProposal?.components?.length;$('downloadProposal').disabled=!refinementProposal;
+ if(m?.schema==='target-layout-matches/1'){
+  const a=refinementProposal.artifacts,safeArtifact=p=>typeof p==='string'&&/^target-matching\/[0-9a-f]{12}\/(?:before\.png|after\.png|expected\.png|report\.html)$/.test(p);$('targetMatchResults').hidden=false;
+  $('targetResolved').hidden=!safeArtifact(a?.after);if(safeArtifact(a?.after))$('targetResolved').src=a.after;
+  $('targetMatchReport').hidden=!safeArtifact(a?.report);if(safeArtifact(a?.report))$('targetMatchReport').href=a.report;
+  const diagnostics=(Array.isArray(m.diagnostics)?m.diagnostics:[]).map(d=>d.id+'：'+d.reason);
+  const projected=(Array.isArray(m.projection?.groups)?m.projection.groups:[]).map(g=>`${g.id}：置信度 ${Number(g.confidence).toFixed(2)}，求解后距期望中心 ${Number(g.centerDisplacement).toFixed(1)} 逻辑单位`);
+  $('targetMatchSummary').textContent=[`设备：${refinementProposal.target} / ${refinementProposal.state}`,`匹配器：${m.method}；约束投影：${m.projection?.backend||'无'}`,...projected,...diagnostics,refinementProposal.rendering?.after?.status==='incomplete'?'部分原生效果或资源未能离线渲染，详见报告':''].filter(Boolean).join('\n');
+ }
  if(refinementProposal)$('detail').textContent=JSON.stringify(refinementProposal,null,2);
  draw();
  if(refinementProposal?.target!==device().profile.id||refinementProposal?.state!==stateId)return;
@@ -61,5 +70,27 @@ $('exportRefinement').onclick=async()=>{try{downloadLayoutJSON(await refinementR
 $('importRefinement').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;if(file.size>1024*1024)throw Error('JSON 不能超过 1MB');const proposal=JSON.parse(await file.text());validateProposal(await refinementRequest(),proposal);refinementProposal=proposal;showRefinement();}catch(error){$('refinementStatus').textContent=error.message;}finally{e.target.value='';}};
 $('applyRefinement').onclick=async()=>{if(!refinementProposal||busy)return;busy=true;try{const request=await refinementRequest(),transforms=validateProposal(request,refinementProposal);if(live)acceptLive(await api('refineapply',{session:liveSession,proposal:refinementProposal}));else{Object.assign(layout().transforms,Object.fromEntries(transforms));frames=[];frameIndex=-1;draw();}refinementProposal=null;$('applyRefinement').disabled=true;$('refinementStatus').textContent=live?'已应用到会话中的匹配组件，导出 HWT 将保存修改后的项目':'已应用到当前画面的预览；完整范围写回请使用 layout_refinement.py apply';}catch(e){$('refinementStatus').textContent=e.message;}finally{busy=false;}};
 $('downloadProposal').onclick=()=>{if(refinementProposal)downloadLayoutJSON(refinementProposal,'layout-refinement-proposal.json');};
-$('referenceImage').onchange=e=>{referenceFile=e.target.files[0]||null;$('matchReference').disabled=!live||!referenceFile;$('refinementStatus').textContent=live?'参考图已选择，点击匹配生成建议':'参考图匹配需本地服务；可用 layout_refinement.py match 离线运行';};
-$('matchReference').onclick=async()=>{try{if(!referenceFile||busy)return;if(referenceFile.size>10*1024*1024)throw Error('参考图不能超过 10MB');busy=true;$('refinementStatus').textContent='正在本地匹配参考图…';const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(referenceFile);});refinementProposal=await api('match',{session:liveSession,image});showRefinement();}catch(e){$('refinementStatus').textContent=e.message;}finally{busy=false;}};
+$('referenceImage').onchange=e=>{
+ referenceFile=e.target.files[0]||null;refinementProposal=null;$('applyRefinement').disabled=true;$('downloadProposal').disabled=true;
+ if(referenceURL)URL.revokeObjectURL(referenceURL);referenceURL=null;
+ $('matchReference').disabled=!live||!referenceFile;$('targetResolved').hidden=true;$('targetMatchReport').hidden=true;$('targetMatchSummary').textContent='';
+ $('targetMatchResults').hidden=!referenceFile;if(referenceFile){referenceURL=URL.createObjectURL(referenceFile);$('targetExpected').src=referenceURL;}
+ $('refinementStatus').textContent=live?'目标图已选择，点击匹配生成建议':'图片匹配需要启动本地服务，或使用 multires.py tools target-layout match';draw();
+};
+$('matchReference').onclick=async()=>{
+ if(!referenceFile||busy)return;
+ let timer=null;const generation=sessionGeneration,target=device().profile.id,state=stateId,session=liveSession,selectedFile=referenceFile;
+ try{
+  if(referenceFile.size>10*1024*1024)throw Error('目标图不能超过 10MB');
+  const confidence=Number($('targetMatchConfidence').value);if(!Number.isFinite(confidence)||confidence<0||confidence>1)throw Error('置信度范围为 0..1');
+  busy=true;$('matchReference').disabled=true;refinementProposal=null;$('applyRefinement').disabled=true;$('downloadProposal').disabled=true;
+  const strategy=$('targetMatchStrategy').value,start=Date.now();
+  const update=()=>{$('refinementStatus').textContent=`正在${strategy==='qwen'?'加载本地视觉模型并匹配':'匹配原组件图集'}、求解布局… ${Math.floor((Date.now()-start)/1000)} 秒`;};update();timer=setInterval(update,1000);
+  const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(referenceFile);});
+  const proposal=await api('matchtarget',{session,image,strategy,minimumConfidence:confidence,preserveRelations:$('targetKeepRelations').checked,applyScope:$('targetMatchReuse').checked?'matching-components':'state'});
+  if(generation!==sessionGeneration||target!==device().profile.id||state!==stateId||session!==liveSession||selectedFile!==referenceFile)throw Error('匹配期间图片、设备或状态已改变，请重新匹配');
+  clearInterval(timer);timer=null;refinementProposal=proposal;showRefinement();
+ }catch(e){$('refinementStatus').textContent=e.message;}finally{if(timer)clearInterval(timer);busy=false;$('matchReference').disabled=!live||!referenceFile;}
+};
+$('exportTargetCatalog').onclick=async()=>{if(!live){$('refinementStatus').textContent='导出组件组目录需本地服务或 target-layout catalog 命令';return;}if(busy)return;busy=true;try{downloadLayoutJSON(await api('targetcatalog',{session:liveSession}),'target-layout-catalog.json');$('refinementStatus').textContent='组件组目录已导出；含原脚本 ID、组别名、语义和约束';}catch(e){$('refinementStatus').textContent=e.message;}finally{busy=false;}};
+$('discardRefinement').onclick=()=>{if(busy)return;refinementProposal=null;$('targetResolved').hidden=true;$('targetMatchReport').hidden=true;$('targetMatchSummary').textContent='';showRefinement();};

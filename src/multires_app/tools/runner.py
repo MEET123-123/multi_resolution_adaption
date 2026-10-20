@@ -21,6 +21,7 @@ COMMANDS={
     'eval-batch':'eval_batch',
     'feedback-loop':'feedback_loop',
     'layout-lab':'layout_lab',
+    'target-layout':'target_layout',
 }
 
 

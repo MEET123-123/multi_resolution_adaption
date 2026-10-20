@@ -119,6 +119,10 @@ def validate_and_apply(project,proposal):
     for cid,change in changes.items():layout['transforms'][cid]=change['transform']
     report={'target':target,'state':state,'baseDigest':request['baseDigest'],'changedComponents':len(changes),
             'warnings':warnings,'origin':proposal.get('origin','offline-json'),'nativeDeviceTest':False}
+    if proposal.get('origin')=='expected-image-matcher':
+        report['matching']=copy.deepcopy(proposal.get('matching',{}))
+        report['reference']=copy.deepcopy(proposal.get('reference',{}))
+        report['artifacts']=copy.deepcopy(proposal.get('artifacts',{}))
     layout['manualRefinement']=report
     report['applyScope']=scope
     if scope=='matching-components':
@@ -145,8 +149,10 @@ def validate_and_apply(project,proposal):
         validate_geometry_change(desc,before['transforms'],candidate['transforms'],changed,{cid for cid,d in desc.items() if d['role'] in {'background','gesture-layer'}},region,candidate['state'],all_groups)
         propagated+=1
     report['affectedStates']=propagated
+    prior=layout.get('adaptationPlan',{})
     layout['adaptationPlan']={'policy':'reviewed-layout-json','refinement':report,
-                              'previousPolicy':layout.get('adaptationPlan',{}).get('policy')}
+                              'previousPolicy':prior.get('policy'),
+                              'anchorPlan':copy.deepcopy(prior.get('anchorPlan',prior))}
     return result,report
 
 

@@ -306,8 +306,8 @@ def serve_project(project_path,port=8765):
             if self.headers.get("Host")!=f"127.0.0.1:{self.server.server_port}":self.send_error(403);return
             name=unquote(urlsplit(self.path).path).lstrip("/") or ("index.html" if catalog else "preview.html")
             artifacts={'preview.html','validation.json','live-validation.json','report.json','layout-clusters.json','components.json','scene-graph.json','README.md','interaction-ir.json','interaction-bindings.json','engine-compatibility.json','scene-analysis.json'}
-            pattern=r'(?:[A-Za-z0-9_-]+/scenes/)?(?:'+'|'.join(re.escape(n) for n in artifacts)+r'|assets/.+|scripts/.+|live/.+)'
-            allowed=(catalog and name=='index.html') or (bool(re.fullmatch(pattern,name)) if catalog else name in artifacts or name.startswith(("assets/","scripts/","live/")))
+            pattern=r'(?:[A-Za-z0-9_-]+/scenes/)?(?:'+'|'.join(re.escape(n) for n in artifacts)+r'|assets/.+|scripts/.+|live/.+|target-matching/.+)'
+            allowed=(catalog and name=='index.html') or (bool(re.fullmatch(pattern,name)) if catalog else name in artifacts or name.startswith(("assets/","scripts/","live/","target-matching/")))
             if not allowed:self.send_error(404);return
             path=(root/name).resolve()
             if not path.is_relative_to(root) or not path.is_file():self.send_error(404);return
@@ -322,7 +322,12 @@ def serve_project(project_path,port=8765):
                     self.send_response(416);self.send_header('Content-Range',f'bytes */{total}');self.end_headers();return
                 status=206
             if name.endswith("preview.html"):
-                data=path.read_bytes()
+                # Serve current UI for old converted projects without rewriting their files.
+                document=path.with_name('project.json')
+                if document.is_file():
+                    from multires_app.preview.scene_previewer import scene_preview_html
+                    data=scene_preview_html(json.loads(document.read_text(encoding='utf8'))).encode('utf8')
+                else:data=path.read_bytes()
                 slug=name.split('/')[0] if catalog else None
                 config=json.dumps({"token":token,"api":"/api/"+(slug+'/' if slug else '')})
                 data=data.replace(b"const DATA=",("const LIVE_CONFIG="+config+";\nconst DATA=").encode(),1)
@@ -349,7 +354,7 @@ def serve_project(project_path,port=8765):
             if self.headers.get("Host")!=expected or self.headers.get("X-Scene-Token")!=token or self.headers.get("Origin",f"http://{expected}")!=f"http://{expected}":self.send_json(403,{"error":"invalid origin/token"});return
             try:length=int(self.headers.get("Content-Length","0"))
             except ValueError:self.send_json(400,{"error":"invalid content length"});return
-            limit=14*1024*1024 if urlsplit(self.path).path.endswith('/match') else 1024*1024
+            limit=14*1024*1024 if urlsplit(self.path).path.endswith(('/match','/matchtarget')) else 1024*1024
             if length<1 or length>limit:self.send_json(413,{"error":"request too large"});return
             try:
                 body=json.loads(self.rfile.read(length));operation=urlsplit(self.path).path
@@ -379,14 +384,26 @@ def serve_project(project_path,port=8765):
                     elif operation=="/api/select":result=session.select(body["state"])
                     elif operation=="/api/refinerequest":result=session.refinement_request()
                     elif operation=="/api/refineapply":result=session.apply_refinement(body['proposal'])
+                    elif operation=="/api/targetcatalog":
+                        from multires_app.preview.target_layout import build_catalog
+                        result,_=build_catalog(session.project,session.device['profile']['id'],session.state_id,session.output_root)
                     elif operation=="/api/anchorapply":result=session.apply_anchor_configuration(body['configuration'],body.get('reason','designer correction'))
-                    elif operation=="/api/match":
-                        from multires_app.preview.reference_matching import match_reference
+                    elif operation in {"/api/match","/api/matchtarget"}:
                         data=body.get('image','')
                         if not isinstance(data,str) or not re.fullmatch(r'data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+',data):raise ValueError('参考图格式无效')
                         try:raw=base64.b64decode(data.split(',',1)[1],validate=True)
                         except ValueError:raise ValueError('参考图编码无效')
-                        result=match_reference(session.project,session.device['profile']['id'],session.state_id,raw,session.output_root)
+                        if operation=='/api/match':
+                            from multires_app.preview.reference_matching import match_reference
+                            result=match_reference(session.project,session.device['profile']['id'],session.state_id,raw,session.output_root)
+                        else:
+                            from multires_app.preview.target_layout import match_target_layout
+                            strategy=body.get('strategy','template');preserve=body.get('preserveRelations',True)
+                            confidence=body.get('minimumConfidence',.78)
+                            if strategy not in {'template','qwen'} or type(preserve) is not bool or type(confidence) not in (int,float) or not math.isfinite(confidence) or not 0<=confidence<=1:
+                                raise ValueError('目标布局匹配参数无效')
+                            result=match_target_layout(session.project,session.device['profile']['id'],session.state_id,raw,session.output_root,
+                                strategy=strategy,minimum_confidence=confidence,preserve_relations=preserve,apply_scope=body.get('applyScope','matching-components'))
                     elif operation=="/api/export":
                         result=session.save(output_root/"live"/sid);result["url"]="live/"+sid+"/adapted.hwt";result['historyUrl']='live/'+sid+'/interaction-history.json'
                     else:self.send_error(404);return

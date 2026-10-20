@@ -18,6 +18,7 @@
 - [九宫格锚点、容器与约束求解](guides/ANCHOR_LAYOUT.md)
 - [交互状态与变量变化的数据模型](guides/INTERACTION_STATE_MODEL.md)
 - [布局 JSON 微调与参考图匹配](guides/LAYOUT_REFINEMENT.md)
+- [目标布局图匹配：本地视觉模型、约束求解与脚本写回（无需训练）](guides/TARGET_LAYOUT_MATCHING.md)
 - [居中、边缘与上下间距](guides/LAYOUT_RELATIONS.md)
 - [布局复用、两列重排与资源处理](guides/LAYOUT_RESEARCH.md)
 - [旧版项目总览（历史记录）](guides/LEGACY_README.md)

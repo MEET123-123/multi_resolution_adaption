@@ -45,10 +45,10 @@ def runtime_elements(runtime,assets,viewport):
     return result
 
 
-def raster_snapshot(elements,viewport,asset_root,max_size=(1280,800)):
+def raster_snapshot(elements,viewport,asset_root,max_size=(1280,800),background='#14212b'):
     scale=min(max_size[0]/viewport['width'],max_size[1]/viewport['height'])
     size=(max(1,round(viewport['width']*scale)),max(1,round(viewport['height']*scale)))
-    canvas=Image.new('RGBA',size,'#14212b');layers=[];evidence={}
+    canvas=Image.new('RGBA',size,background);layers=[];evidence={}
     for element in elements:
         b=element['rect'];key=element['key'];record={'rect':b,'asset':element.get('asset',''),'text':element.get('text',''),
             'alpha':element['alpha'],'status':'outside','paintFraction':0.,'clipFraction':0.,'paintPixels':0.,'supported':True}
