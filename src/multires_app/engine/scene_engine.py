@@ -327,8 +327,11 @@ class Runtime:
         walk(next(iter(nodes)))
         return output
 
-    def snapshot(self, assets, visible_only=False, only_ids=None):
+    def snapshot(self, assets, visible_only=False, only_ids=None, slider_states=False):
         output=[]; nodes=self.model["nodes"]; global_rect={}
+        # Slider/Unlocker state wrappers carry no geometry of their own; their
+        # children are absolutely positioned, so offsets must not accumulate.
+        transparent={'StartPoint','EndPoint','NormalState','PressedState','ReachedState'} if slider_states else set()
         needed=None
         if only_ids is not None:
             needed=set()
@@ -338,7 +341,10 @@ class Runtime:
         def walk(uid, px=0,py=0,visible=True,parent_alpha=1):
             if needed is not None and uid not in needed:return
             node=nodes[uid];a=node["attributes"];tag=node["tag"]
-            if tag not in VISUAL and node["parent"] is not None:
+            if tag not in VISUAL and tag not in transparent and node["parent"] is not None:
+                return
+            if tag in transparent:
+                for child in node["children"]:walk(child,px,py,visible,parent_alpha)
                 return
             shown=visible and bool(self.value(a.get("visibility",1),0,uid+":visibility"))
             if visible_only and not shown:return

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>锁屏主题实时预览</title>
+<style>
+  :root{
+    --bg:#f2f5f8; --card:#ffffff; --ink:#16202b; --muted:#5d6f80; --line:#dde5ec;
+    --accent:#0f766e; --accent-soft:#e6f4f1; --warn:#b54708; --danger:#b42318;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:14px;padding:12px 18px;background:var(--card);border-bottom:1px solid var(--line);flex:none}
+  header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.2px}
+  header .meta{color:var(--muted);font-size:12px;display:flex;gap:12px;flex-wrap:wrap}
+  header .meta b{color:var(--ink);font-weight:600}
+  .grow{flex:1}
+  button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer;transition:.15s}
+  button:hover{border-color:#b9c7d4;background:#f7fafc}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{background:#0d655e}
+  main{flex:1;display:flex;min-height:0}
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:22px;position:relative;min-width:0}
+  .device{position:relative;background:#0b1116;border-radius:34px;padding:10px;box-shadow:0 18px 50px rgba(15,30,45,.22),0 2px 6px rgba(15,30,45,.12)}
+  .device::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:16px;width:64px;height:6px;border-radius:3px;background:#26323c;opacity:.7}
+  .screen{position:relative;overflow:hidden;border-radius:26px;background:#000;cursor:crosshair;touch-action:none}
+  .screen .layer{position:absolute;inset:0;transform-origin:0 0}
+  .screen img,.screen video{position:absolute;display:block;pointer-events:none;user-select:none;-webkit-user-drag:none}
+  .screen .txt{position:absolute;white-space:pre;pointer-events:none;line-height:1.15}
+  .hud{position:absolute;left:14px;bottom:14px;display:flex;gap:8px;align-items:center;font-size:11px;color:#cfe3ea;background:rgba(11,17,22,.55);padding:5px 9px;border-radius:8px;backdrop-filter:blur(4px)}
+  .hud .dot{width:6px;height:6px;border-radius:50%;background:#3ddc97}
+  .touch{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:2px solid rgba(255,255,255,.85);background:rgba(255,255,255,.18);pointer-events:none;opacity:0;transition:opacity .2s}
+  .touch.on{opacity:1}
+  .dragbar{position:absolute;left:14px;right:14px;bottom:48px;height:26px;border-radius:13px;background:rgba(11,17,22,.6);display:none;align-items:center;overflow:hidden;pointer-events:none;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.16)}
+  .dragbar.on{display:flex}
+  .dragbar i{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(61,220,151,.42);transition:width .05s linear}
+  .dragbar span{position:relative;margin:0 auto;font-size:11px;color:#dff5ea;letter-spacing:.4px}
+  .dragbar.reached i{background:rgba(61,220,151,.85)}
+  .dragbar.reached span{color:#04231a;font-weight:600}
+  aside{width:340px;flex:none;background:var(--card);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .tabs{display:flex;gap:2px;padding:10px 12px 0;border-bottom:1px solid var(--line);flex:none}
+  .tabs button{border:none;background:none;border-radius:8px 8px 0 0;padding:7px 12px;color:var(--muted);font-size:13px}
+  .tabs button.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .panels{flex:1;overflow:auto;padding:12px 14px 20px}
+  .panel{display:none}
+  .panel.active{display:block}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed #eef2f6;font-size:13px}
+  .row:last-child{border-bottom:none}
+  .row span:first-child{color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row span:last-child{font-variant-numeric:tabular-nums;text-align:right;flex:none;max-width:60%;overflow:hidden;text-overflow:ellipsis}
+  .note{color:var(--muted);font-size:12px;margin:10px 0 6px}
+  .diag{border-left:3px solid #f0b429;background:#fffbf0;padding:7px 10px;border-radius:0 7px 7px 0;margin-bottom:7px;font-size:12px;color:#5c4a1f}
+  .diag.err{border-color:var(--danger);background:#fff5f4;color:#7a271a}
+  .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:13px;line-height:1.8}
+  .drop{position:fixed;inset:0;background:rgba(15,118,110,.12);border:3px dashed var(--accent);border-radius:14px;display:none;align-items:center;justify-content:center;font-size:18px;color:var(--accent);font-weight:600;z-index:50;margin:12px}
+  .drop.on{display:flex}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:11px;padding:3px 8px;border-radius:999px;background:#eef3f7;color:#41556a}
+  .chip.on{background:var(--accent-soft);color:var(--accent)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:#16202b;color:#fff;padding:9px 16px;border-radius:9px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+  .toast.on{opacity:1;transform:translateX(-50%)}
+  .toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);cursor:pointer}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .speed span{white-space:nowrap;flex:none}
+  .speed input{flex:1;min-width:0}
+  .device.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>锁屏主题实时预览</h1>
+  <div class="meta" id="meta"><span>等待导入主题</span></div>
+  <div class="grow"></div>
+  <button id="importBtn">导入 HWT</button>
+  <button id="resetBtn">重置状态</button>
+  <input id="file" type="file" accept=".hwt,.zip" hidden>
+</header>
+<main>
+  <div class="stage" id="stage">
+    <div class="device hidden" id="device">
+      <div class="screen" id="screen">
+        <div class="layer" id="layer"></div>
+        <div class="touch" id="touch"></div>
+        <div class="dragbar" id="dragbar"><i id="dragFill"></i><span id="dragText">0%</span></div>
+      </div>
+    </div>
+    <div class="hud" id="hud"><span class="dot"></span><span id="hudText">未加载</span></div>
+    <div class="empty" id="empty">把 .hwt 主题包拖到这里，或点击右上角「导入 HWT」<br><span style="font-size:12px">导入后可直接在画面上点击、长按、滑动</span></div>
+  </div>
+  <aside>
+    <div class="tabs">
+      <button class="active" data-tab="gesture">手势</button>
+      <button data-tab="vars">变量</button>
+      <button data-tab="diag">诊断</button>
+    </div>
+    <div class="panels">
+      <div class="panel active" id="panel-gesture">
+        <div class="note">在画面上操作，引擎会执行主题自己的 Trigger / VariableCommand。按住并滑动可以拖动 Slider / Unlocker。</div>
+        <div class="row"><span>可交互控件</span><span id="mControls">—</span></div>
+        <div class="row"><span>识别到的触发器</span><span id="mTriggers">—</span></div>
+        <div class="row"><span>上次手势</span><span id="mLast">—</span></div>
+        <div class="note">操作记录</div>
+        <div id="history" class="empty" style="padding:14px 0">还没有操作</div>
+        <div class="note">动画</div>
+        <label class="toggle"><input type="checkbox" id="animToggle" checked> 播放脚本动画</label>
+        <div class="speed"><span>速度</span><input type="range" id="speed" min="0" max="3" step="0.05" value="1"><span id="speedVal">1.0×</span></div>
+        <div class="note">缩放</div>
+        <div class="speed"><input type="range" id="zoom" min="40" max="120" step="1" value="80"><span id="zoomVal">80%</span></div>
+      </div>
+      <div class="panel" id="panel-vars">
+        <div class="note">当前运行时的变量快照（最多 40 个）。</div>
+        <div id="vars"></div>
+      </div>
+      <div class="panel" id="panel-diag">
+        <div class="note">解释器不支持或需要实机确认的项，不会静默通过。</div>
+        <div id="diags"></div>
+      </div>
+    </div>
+  </aside>
+</main>
+<div class="drop" id="drop">松开导入主题包</div>
+<div class="toast" id="toast"></div>
+<script>
+const LIVE_CONFIG=__LIVE_CONFIG__;
+__SCRIPT__
+</script>
+</body>
+</html>

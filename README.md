@@ -62,6 +62,7 @@ multi-res/
 | 看半岛日记最新修复 | [屏外面板与交互修复](docs/reports/BANDAO_DRAWER_RESULTS.md) |
 | 看所有设计与使用文档 | [文档导航](docs/README.md) |
 | 做批量评测与 badcase 归因 | [批量评测与反向优化](docs/guides/EVAL_AND_BADCASE.md)、`multires.py tools eval-batch` |
+| 导入主题包做实时预览 | [实时预览](docs/guides/LIVE_PREVIEW.md)、`multires.py live <主题.hwt>`（支持点击、长按、滑动、Slider/Unlocker 拖动解锁） |
 | 接通评测、人工反馈和候选回归闭环 | [可插拔反馈引擎](docs/guides/FEEDBACK_LOOP.md)、`multires.py tools feedback-loop` |
 | 用 mock 验证 Qwen3-VL 布局微调与批量标注 | [模型 MVP](docs/guides/QWEN_LAYOUT_MVP.md)、`multires.py tools layout-lab` |
 | 看在线服务及当前限制 | [服务说明](docs/guides/SAAS_READINESS.md) |

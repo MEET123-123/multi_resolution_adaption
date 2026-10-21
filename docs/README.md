@@ -11,6 +11,7 @@
 - [保留布局与组件重排：代码化适配流程](guides/ADAPTATION_WORKFLOW.md)
 - [布局美学评价与迭代优化](guides/AESTHETICS.md)
 - [批量评测、badcase 归因与反向优化](guides/EVAL_AND_BADCASE.md)
+- [实时预览：导入主题包、手势与动画](guides/LIVE_PREVIEW.md)
 - [可插拔评测闭环：居中保持、ReDeCheck 关系图与固定回归](guides/FEEDBACK_LOOP.md)
 - [Qwen3-VL 布局微调 MVP：mock、批量标注与真实配对接口](guides/QWEN_LAYOUT_MVP.md)
 - [模型 MVP 接口审计](guides/IMPLEMENTATION_AUDIT.md) / [缓存数据流水线](guides/DATA_PIPELINE_PLAN.md)

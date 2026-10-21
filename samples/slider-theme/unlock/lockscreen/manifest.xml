@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Static track: StartPoint/EndPoint are fixed, so the preview drives
+     #slide_move.move_x / move_y / progress and tests the EndPoint reach. -->
+<Lockscreen version="1" screenWidth="1080" screenHeight="2160" frameRate="30">
+  <Var name="unlocked" expression="0" />
+  <Slider name="slide_move" bounceInitSpeed="0" bounceAcceleration="0">
+    <StartPoint x="0" y="0" w="1080" h="2160" />
+    <EndPoint x="0" y="-540" w="1080" h="60">
+      <Path x="0" y="0" w="1080" h="540">
+        <Position x="0" y="0" />
+        <Position x="0" y="-540" />
+      </Path>
+    </EndPoint>
+  </Slider>
+  <Text name="hint" text="上滑解锁" x="440" y="1800" size="40" />
+  <Text name="status" textExp="'unlocked='+#unlocked" x="440" y="1900" size="32" />
+  <Button name="unlock_button" x="0" y="0" w="1080" h="2160">
+    <Triggers>
+      <Trigger action="up">
+        <VariableCommand name="unlocked" expression="1" condition="ge(#touch_begin_y-#touch_y,300)" />
+        <ExternCommand command="unlock" condition="ge(#touch_begin_y-#touch_y,300)" />
+      </Trigger>
+    </Triggers>
+  </Button>
+</Lockscreen>

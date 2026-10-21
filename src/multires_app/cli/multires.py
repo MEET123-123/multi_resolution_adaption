@@ -351,6 +351,11 @@ def main() -> int:
     p_serve = sub.add_parser("serve", help="启动本地实时交互解释器和布局聚类预览")
     p_serve.add_argument("project", type=Path)
     p_serve.add_argument("--port", type=int, default=8765)
+    p_live = sub.add_parser("live", help="实时预览主题包：导入 HWT、手势执行与动画播放")
+    p_live.add_argument("source", type=Path, nargs="?", help="要预览的 .hwt/.zip，留空则启动后在页面里导入")
+    p_live.add_argument("--port", type=int, default=8767, help="监听端口，默认 8767（serve 用的是 8766）")
+    p_live.add_argument("--out", type=Path, default=Path("preview-live"), help="素材解包目录，默认 preview-live")
+    p_live.add_argument("--no-import", action="store_true", help="只预览启动时指定的主题包")
     p_tools = sub.add_parser("tools", help="批量转换、重新布局、打包和服务管理工具")
     p_tools.add_argument("tool_args", nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -388,6 +393,9 @@ def main() -> int:
         elif args.command == "serve":
             from multires_app.preview.interaction_server import serve_project
             serve_project(args.project,args.port)
+        elif args.command == "live":
+            from multires_app.preview.live_preview import serve_live
+            serve_live(args.source, args.port, args.out, not args.no_import)
         elif args.command == "relayout":
             from multires_app.pipeline.scene_pipeline import relayout_project
             print(json.dumps(relayout_project(args.project, args.algorithm, args.components, args.anchor_config), ensure_ascii=False, indent=2))

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Touch-driven track: StartPoint/EndPoint are written in #touch_*, so the
+     preview must feed real finger coordinates and let the theme decide. -->
+<Lockscreen version="1" screenWidth="1080" screenHeight="2160" frameRate="30">
+  <Var name="page" expression="0" />
+  <Slider name="page_slider" bounceInitSpeed="0" bounceAcceleration="0">
+    <StartPoint x="#touch_begin_x" y="#touch_begin_y" w="1" h="1" />
+    <EndPoint x="#touch_x" y="#touch_y" w="1" h="1">
+      <Triggers>
+        <Trigger action="up">
+          <VariableCommand name="page" expression="1" condition="ge(#touch_begin_x-#touch_x,200)" />
+        </Trigger>
+      </Triggers>
+    </EndPoint>
+  </Slider>
+  <Text name="label" text="左右翻页" x="400" y="1800" size="40" />
+  <Text name="status" textExp="'page='+#page" x="400" y="1900" size="32" />
+</Lockscreen>
