@@ -21,6 +21,13 @@ def render(project, device, layout, assets, path, annotations=None):
                 omitted.append(e['id']); continue
             pixels += size; selected.append(e)
         image, paint = raster_snapshot(selected, viewport, assets, max_size=(768, 768))
+        by_key={e['key']:e for e in selected};unsupported=[]
+        for key,info in paint.items():
+            if info['supported']:continue
+            e=by_key[key];node=project['model']['nodes'][e['id']]
+            unsupported.append({'node':e['id'],'tag':e['tag'],'status':info['status'],
+                'reason':'missing-asset' if e['tag']=='Image' else 'color-expression' if info['status']=='unrendered-color-expression' else 'native-effect',
+                'asset':e.get('asset'),'sourceReference':node['attributes'].get('src',node['attributes'].get('srcExp',''))})
         if annotations:
             draw = ImageDraw.Draw(image)
             for alias, b in annotations.items():
@@ -29,5 +36,5 @@ def render(project, device, layout, assets, path, annotations=None):
                 draw.text((coords[0]+3, coords[1]+2), alias, fill='#ff605e', stroke_width=1)
         path.parent.mkdir(parents=True, exist_ok=True); image.convert('RGB').save(path)
         return {'status': 'incomplete' if omitted or any(not p['supported'] for p in paint.values()) else 'simulated',
-                'omitted': len(omitted), 'unsupported': sum(not p['supported'] for p in paint.values()), 'native': False}
+                'omitted': len(omitted), 'unsupported':len(unsupported),'unsupportedElements':unsupported,'native': False}
     finally:read_bitmap.cache_clear()

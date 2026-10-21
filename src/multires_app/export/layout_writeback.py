@@ -17,6 +17,8 @@ def patch_script(data,original_nodes,root,resource_remaps=None,coordinate_space=
     treated as arbitrary command edits.
     """
     from multires_app.engine.coordinate_space import replace_references,EXPRESSION_FIELDS
+    from multires_app.export.touch_coordinates import pure_touch_definitions,expand_touch,has_touch,restore_inverse,is_capture_trigger
+    touch_definitions=pure_touch_definitions((n.tag,a) for n,a,_ in original_nodes)
     reverse={v:k for k,v in (coordinate_space or {}).get('aliases',{}).items()}
     old_ids={id(n) for n,_,_ in original_nodes};old_attributes={id(n):a for n,a,_ in original_nodes};changes=[];insertions={}
     for node,attrs,children in original_nodes:
@@ -31,7 +33,9 @@ def patch_script(data,original_nodes,root,resource_remaps=None,coordinate_space=
             if key in {'expression','condition'}:
                 # Only original touch expressions may be remapped; variable names,
                 # resource references and ordinary business conditions stay intact.
-                allowed=canvas_change or bool(re.search(r'#touch_(?:begin_)?[xy]\b',attrs.get(key,''))) and '#mr_' in value
+                expanded=expand_touch(attrs.get(key,''),touch_definitions)
+                allowed=canvas_change or (has_touch(expanded) and '#mr_' in value and
+                    restore_inverse(replace_references(value,reverse))==expanded)
             if not allowed:raise ValueError('writeback field is not approved: '+str(node.tag)+'.'+key)
             changes.append({'tag':node.tag,'attribute':key,'old':attrs.get(key),'new':value,
                             'kind':'resource-family-scale' if resource_change else 'geometry' if key in GEOMETRY else 'source-canvas-input-remap' if canvas_change else 'gesture-coordinate-remap'})
@@ -40,8 +44,9 @@ def patch_script(data,original_nodes,root,resource_remaps=None,coordinate_space=
             for child in added:
                 is_parameter=node is root and child.tag=='Var' and re.fullmatch(r'mr_(?:layout_|state_)?[0-9a-f]+(?:_[a-z]+)?',child.get('name',''))
                 is_capture=node.tag=='Trigger' and child.tag=='VariableCommand' and re.fullmatch(r'mr_[0-9a-f]+_(?:sx|sy|tx|ty)',child.get('name',''))
-                if not(is_parameter or is_capture):raise ValueError('unapproved generated script node: '+str(child.tag))
-                if list(child):raise ValueError('generated parameters must be leaves')
+                is_down=node.tag in {'Triggers','Button'} and is_capture_trigger(child)
+                if not(is_parameter or is_capture or is_down):raise ValueError('unapproved generated script node: '+str(child.tag))
+                if list(child) and not is_down:raise ValueError('generated parameters must be leaves')
             # The exporter only inserts generated nodes before original children.
             if list(node)[:len(added)]!=added:raise ValueError('generated nodes must precede original children')
             insertions[id(node)]=''.join(ET.tostring(c,encoding='unicode') for c in added)

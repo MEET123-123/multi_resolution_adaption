@@ -6,6 +6,47 @@ visibility expressions, XML hierarchy and cached runtime rows remain intact.
 import copy
 
 
+def refresh_inferred_bindings(project):
+    """Upgrade coarse cached ownership using existing source snapshots only."""
+    if any(c.get('layout') or c.get('provenance')=='manual' for c in project['components']):return False
+    if any(d.get('profile',{}).get('adaptation',{}).get('anchorLayout',{}).get(k)
+           for d in [project.get('sourceDevice',{}),*project.get('devices',[])] for k in ('groups','constraints')):return False
+    from multires_app.pipeline.scene_pipeline import infer_components
+    from multires_app.engine.scene_engine import Runtime
+    source=project['sourceDevice'];vp=source['viewport'];model=project['model']
+    initial=source['layouts'][0]
+    model.setdefault('assetNames',list(project['assets']))
+    templates=Runtime(model,vp['width'],vp['height'],initial.get('overrides',{})).snapshot(project['assets'])
+    by_id={e['id']:e for e in templates};samples=[]
+    for l in source['layouts']:
+        current={}
+        for r in l['rows']:
+            uid=project['nodeOrder'][r[0]]
+            e={**by_id[uid],'rect':dict(zip(('x','y','w','h'),r[1:5])),'visible':r[5]>0,'alpha':r[5]}
+            current[uid]=e
+        samples.append([current.get(e['id'],{**e,'visible':False}) for e in templates])
+    from multires_app.interaction.interaction_bindings import analyze_bindings
+    new=analyze_bindings(model,samples,{'width':vp['width'],'height':vp['height']},model.get('inputs',{}).get('bindings'))
+    old={b['button']:b for b in model.get('layoutBindings',{}).get('bindings',[])}
+    if model.get('componentInferenceVersion',0)>=3 and not any(set(b.get('rejectedUnstableAnchors',[]))&set(old.get(b['button'],{}).get('anchors',[])) for b in new['bindings']):
+        return False
+    components=infer_components(model,project['sourceProfile'],project['assets'],initial.get('overrides',{}),sampled_elements=samples)
+    project['components']=components
+    project['nodeComponents']={u:c['id'] for c in components for u in c['members']}
+    for key in ('_visualBoundsReady','_volatileNames'):project.pop(key,None)
+    for d in [source,*project.get('devices',[])]:
+        for l in d['layouts']:l['transforms']={}
+    from multires_app.interaction.regional_gestures import split_regional_gestures
+    from multires_app.layout.composition_sections import split_composition_sections
+    from multires_app.layout.background_layers import split_background_layers
+    from multires_app.layout.footer_components import split_footer_components
+    from multires_app.layout.panel_scaling import infer_panel_scale_families
+    split_regional_gestures(project);split_composition_sections(project);split_background_layers(project);split_footer_components(project)
+    partition_button_components(project);infer_panel_scale_families(project)
+    project['bindingCacheUpgrade']={'policy':'persistent physical correspondence across all co-visible source poses'}
+    return True
+
+
 def refine_components(project):
     result=_refine_authored(project)
     result['buttonPartitions']=partition_button_components(project)

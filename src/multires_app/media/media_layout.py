@@ -257,6 +257,21 @@ def reference(runtime, assets, node_order, asset_order):
     return result
 
 
+def inactive_indices(project,layout):
+    """A sampled visible source pose outranks an old bounded phase probe."""
+    inactive=set(layout.get('mediaLayout',{}).get('inactiveSceneNodeIndices',[]))
+    source=project.get('sourceDevice',{});layouts=source.get('layouts',[]);vp=source.get('viewport',{})
+    if not inactive or not layouts or not vp:return inactive
+    key=(id(layouts),len(layouts));cached=project.get('_sourceActiveIndices')
+    if cached is None or tuple(cached[:2])!=key:
+        active={}
+        for l in layouts:
+            active[l.get('state')]=sorted({r[0] for r in l['rows'] if r[5]>0 and min(r[3:5])>0 and
+                r[1]<vp['width'] and r[2]<vp['height'] and r[1]+r[3]>0 and r[2]+r[4]>0})
+        cached=(key[0],key[1],active);project['_sourceActiveIndices']=cached
+    return inactive-set(cached[2].get(layout.get('state'),[]))
+
+
 def layout_rows(project, layout):
     """Only solver input is replaced. Preview rows remain current-frame data."""
     ref=layout.get('mediaLayout')
@@ -282,13 +297,15 @@ def layout_rows(project, layout):
             if (node['tag']=='Video' or any(model['nodes'][c]['tag']=='SourcesAnimation' for c in node['children']) or
                     any(set(REF.findall(a.get(k,'')))&names for k in ('srcid','srcExp'))):canonical.add(uid)
         project['_canonicalMediaLayoutIds']=sorted(canonical)
-    canonical=set(canonical);references=[]
+    canonical=set(canonical);references=[];replaced=set()
     for r in ref['rows']:
-        if project['nodeOrder'][r[0]] not in canonical:
-            if r[0] in current:references.append(current[r[0]])
-        else:references.append(current[r[0]] if min(r[3:5])<=0 and r[0] in current and min(current[r[0]][3:5])>0 else r)
-    inactive=set(ref.get('inactiveSceneNodeIndices',[]))
-    return sorted([r for r in [*[r for r in layout['rows'] if r[0] not in indices],*references] if r[0] not in inactive],key=lambda r:r[0])
+        if project['nodeOrder'][r[0]] not in canonical:continue
+        references.append(current[r[0]] if min(r[3:5])<=0 and r[0] in current and min(current[r[0]][3:5])>0 else r)
+        replaced.add(r[0])
+    # Keep every occurrence of non-media UI (including bitmap clock glyphs),
+    # even if a finite phase probe never observed its later appearance.
+    inactive=inactive_indices(project,layout)
+    return sorted([r for r in [*[r for r in layout['rows'] if r[0] not in replaced],*references] if r[0] not in inactive],key=lambda r:r[0])
 
 
 def retain_waiting_components(project,device):
@@ -302,7 +319,7 @@ def retain_waiting_components(project,device):
     from multires_app.pipeline.scene_pipeline import state_guard
     for layout in device['layouts']:
         for cid in layout.pop('waitingComponents',[]):layout['transforms'].pop(cid,None)
-    if not any(l.get('mediaLayout',{}).get('inactiveSceneNodeIndices') for l in device['layouts']):return
+    if not any(inactive_indices(project,l) for l in device['layouts']):return
     project.get('_stateGuards',{}).pop(device['profile']['id'],None)
     sources={l['state']:l for l in project.get('sourceDevice',{}).get('layouts',[])}
     source_vp=project.get('sourceDevice',{}).get('viewport',device['viewport'])
@@ -313,7 +330,7 @@ def retain_waiting_components(project,device):
         for cid in active:
             if cid in layout['transforms']:active_families.setdefault((guard,cid),layout['transforms'][cid])
     for layout in device['layouts']:
-        inactive=set(layout.get('mediaLayout',{}).get('inactiveSceneNodeIndices',[]))
+        inactive=inactive_indices(project,layout)
         if not inactive:continue
         active={project['nodeComponents'].get(project['nodeOrder'][r[0]]) for r in layout_rows(project,layout)}
         source_rows=defaultdict(list);current_rows=defaultdict(list)

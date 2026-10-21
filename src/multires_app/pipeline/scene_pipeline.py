@@ -50,7 +50,7 @@ def source_canvas_profile(model, profile):
     return result
 
 
-def infer_components(model, source_profile, assets, initial_state, overrides=None, graph=None):
+def infer_components(model, source_profile, assets, initial_state, overrides=None, graph=None, sampled_elements=None):
     resolution=source_canvas_profile(model,source_profile)["resolutionPx"]
     elements=Runtime(model,resolution["width"],resolution["height"],initial_state).snapshot(assets)
     nodes=model["nodes"]
@@ -70,14 +70,18 @@ def infer_components(model, source_profile, assets, initial_state, overrides=Non
     boundaries.update(clock_roots)
     from multires_app.interaction.interaction_bindings import analyze_bindings,structural_boundaries,attach_components
     samples=[elements]
-    if graph:
+    if sampled_elements is not None:
+        samples=sampled_elements;elements=samples[0]
+    elif graph:
         from multires_app.interaction.interaction_semantics import replay_human_state
         cache={}
         samples=[replay_human_state(model,resolution['width'],resolution['height'],s,assets,cache=cache).snapshot(assets) for s in graph['states']]
         elements=samples[0]
     bindings=analyze_bindings(model,samples,resolution,model.get('inputs',{}).get('bindings'))
     model['layoutBindings']=bindings
-    boundaries.update(structural_boundaries(model,elements,resolution,clock_roots))
+    # A settings page can be invisible at startup. Its organizational groups
+    # still need the same structural partition when a real journey opens it.
+    for sample in samples:boundaries.update(structural_boundaries(model,sample,resolution,clock_roots))
     boundaries.update(b['button'] for b in bindings['bindings'] if b['anchors'] and not animated_ancestor(b['button']))
     for e in elements:
         if e["tag"]=="Button" and e["rect"]["w"]*e["rect"]["h"]>=resolution["width"]*resolution["height"]*.85 and not animated_ancestor(e["id"]):boundaries.add(e["id"])
@@ -182,6 +186,7 @@ def infer_components(model, source_profile, assets, initial_state, overrides=Non
             for binding in bindings['bindings']:
                 if binding['button'] in c['members'] and binding['status']=='needs-review':
                     binding.update(status='source-group',component=c['id'],evidence=['existing source group retained; exact image anchor not inferred'])
+    model['componentInferenceVersion']=3
     ids=set();members=set()
     for c in components:
         if c["id"] in ids:raise ValueError("重复组件 id: "+c["id"])
@@ -690,8 +695,10 @@ def export_script(project, target, out):
     # Capture the chosen component transform before an event mutates its state;
     # remap gesture expressions back to the original component coordinates.
     capture_count=0;capture_defined=set()
-    touch_owners={t["owner"] for t in model["triggers"] if any(re.search(r"#touch_(?:begin_)?[xy]\b",str(c["attributes"])) for c in t["commands"])}
-    down_owners={t["owner"] for t in model["triggers"] if t["action"]=="down"}
+    from multires_app.export.touch_coordinates import pure_touch_definitions,expand_touch,has_touch,TOKENS
+    touch_definitions=pure_touch_definitions((n['tag'],n['attributes']) for n in model['nodes'].values())
+    touch_owners={t['owner'] for t in model['triggers'] if any(has_touch(expand_touch(v,touch_definitions))
+        for n in xml_nodes[t['id']].iter() for k,v in n.attrib.items() if k in {'expression','condition'})}
     for trigger in model["triggers"]:
         cid=project["nodeComponents"].get(trigger["owner"])
         if not cid:continue
@@ -703,19 +710,23 @@ def export_script(project, target, out):
             for field in ("sx","sy","tx","ty"):
                 root.insert(0,ET.Element("Var",{"name":prefix+field,"expression":"1" if field in {"sx","sy"} else "0"}))
             capture_defined.add(prefix)
-        capture=trigger["action"]=="down" or trigger["owner"] not in down_owners
+            # An unconditional adapter runs before every authored down handler,
+            # including conditional/empty ones. The self-equality identifies
+            # this generated event without changing its always-true predicate.
+            down=ET.Element('Trigger',{'action':'down','condition':f'eq(#{prefix}sx,#{prefix}sx)'})
+            for field in ('sx','sy','tx','ty'):
+                ET.SubElement(down,'VariableCommand',{'name':prefix+field,'expression':transforms[cid][field]})
+            xml_nodes[model['nodes'][trigger['id']]['parent']].insert(0,down)
         for child in xml_trigger.iter():
             for attr in ("expression","condition"):
                 if attr in child.attrib:
                     def remap(m):
                         axis=m[1][-1]
-                        shift=transforms[cid]["t"+axis] if child is xml_trigger and capture else "#"+prefix+"t"+axis
-                        scale=transforms[cid]["s"+axis] if child is xml_trigger and capture else "#"+prefix+"s"+axis
+                        shift="#"+prefix+"t"+axis
+                        scale="#"+prefix+"s"+axis
                         return f"((#{m[1]}-({shift}))/({scale}))"
-                    child.set(attr,re.sub(r"#(touch_(?:begin_)?[xy])\b",remap,child.get(attr)))
-        if capture:
-            for i,field in enumerate(("sx","sy","tx","ty")):
-                xml_trigger.insert(i,ET.Element("VariableCommand",{"name":prefix+field,"expression":transforms[cid][field]}))
+                    expanded=expand_touch(child.get(attr),touch_definitions)
+                    child.set(attr,TOKENS.sub(lambda m:remap(m) if m[1] in {'touch_x','touch_y','touch_begin_x','touch_begin_y'} else m[0],expanded))
         capture_count+=1
     for expression,name in macros.items():root.insert(0,ET.Element("Var",{"name":name,"expression":expression}))
     used_guards=set(re.findall(r"#(mr_state_[0-9a-f]+)",ET.tostring(root,encoding="unicode")))

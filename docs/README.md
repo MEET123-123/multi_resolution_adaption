@@ -29,6 +29,7 @@
 
 ## 修复与验证报告
 
+- [全主题回归：连续交互、屏外场景、资源分离与脚本回读修复](reports/CORPUS_REGRESSION_FIXES.md)
 - [初升与叠峰：真实主题模型流程验证与限制](reports/REAL_THEME_MVP_RESULTS.md)
 - [Qwen3-VL mock 微调：实测结果、约束检查与质量门禁](reports/QWEN_MVP_RESULTS.md)
 - [自动评测反馈闭环：全量基线、修复候选与资源控制](reports/FEEDBACK_LOOP_RESULTS.md)

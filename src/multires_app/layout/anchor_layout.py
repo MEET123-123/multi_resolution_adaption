@@ -146,6 +146,13 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                         elif start<0:desired[gid][axis]=region[axis]+start/ref[size]*desired[gid][size]
                         elif end>extent:desired[gid][axis]=region[axis]+region[size]-(extent-start)/ref[size]*desired[gid][size]
             g['preferredScale']=desired[gid]['w']/geo['size']['w']
+            waiting=[]
+            for cid,leaf in geo['leaves'].items():
+                witness=context.get('waitingRegions',{}).get(cid)
+                if witness:
+                    origin=known[cid]['bounds'];b=witness['rect']
+                    waiting.append({**witness,'rect':{'x':leaf['x']+b['x']-origin['x'],'y':leaf['y']+b['y']-origin['y'],'w':b['w'],'h':b['h']}})
+            g['_waiting_regions']=waiting
             visual_parts=[]
             for cid,leaf in geo['leaves'].items():
                 if g.get('centerReferenceMembers') and cid not in g['centerReferenceMembers']:continue
@@ -258,6 +265,8 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                     if a and b and abs(a[axis]+f*a[size]-b[axis]-f*b[size])>.01:return False
                 return True
             ir['spatialAlignments']=[r for r in ir['spatialAlignments'] if persistent(r)]
+        if options.get('inferScreenRelations',True) and not options.get('groups'):
+            ir['spatialFlows'].extend(context.get('leafFlows',[]))
         desired=self.propose_group_boxes(ir,desired,source,target,context)
         separations=collision_directions(roots,desired,0)
         if options.get('inferScreenRelations',True) and not options.get('groups'):
@@ -283,6 +292,12 @@ class AnchorThemeLayout(AdaptiveThemeLayout):
                     from multires_app.layout.visual_geometry import background_cover
                     output[cid]=background_cover(backdrop,ref,vp,source_vp)
                 elif e['role']=='gesture-layer':output[cid]=gesture_transform(b,vp)
+                elif e['role']=='interaction-layer' and not e.get('layout'):
+                    # An invisible unbound hit area describes a screen region,
+                    # not a bitmap. Uniform resource scaling can make its tall
+                    # rectangle cover unrelated buttons on a short canvas.
+                    ref=e['bbox'];sx=region['w']/source_vp['width'];sy=region['h']/source_vp['height']
+                    output[cid]={'sx':sx,'sy':sy,'tx':region['x'],'ty':region['y']}
                 else:
                     s=preferred_scale;ref=e['bbox']
                     visual=e.get('source_visual_bbox',ref);current_visual=e.get('current_visual_bbox',b)

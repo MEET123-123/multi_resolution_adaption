@@ -2,6 +2,7 @@
 import csv
 import html
 import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import urlsplit, unquote
@@ -10,7 +11,7 @@ from .core import write_json, digest
 
 def elements(project, layout):
     from multires_app.pipeline.scene_clusters import transformed_box, IDENTITY
-    result = []
+    result = [];color_runtime=None
     for index, row in enumerate(layout['rows']):
         uid = project['nodeOrder'][row[0]]
         node = project['model']['nodes'][uid]
@@ -22,10 +23,18 @@ def elements(project, layout):
         meta = project['assets'].get(asset, {})
         # The renderer takes cache paths, not untrusted archive member paths.
         cached = unquote(urlsplit(meta.get('url', '')).path).removeprefix('assets/')
+        color=node.get('attributes',{}).get('color','#ffffff')
+        if not re.fullmatch(r'#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}',color):
+            if color_runtime is None:
+                from multires_app.engine.scene_engine import Runtime
+                v=project.get('sourceDevice',{}).get('viewport',{'width':1080,'height':2160})
+                color_runtime=Runtime(project['model'],v['width'],v['height'],{**layout.get('overrides',{}),**layout.get('controlValues',{})},layout.get('timeMs',2400))
+            from multires_app.media.color_support import color_value
+            color=color_value(color,color_runtime)
         result.append({'key': uid + '@' + str(index), 'id': uid, 'tag': node['tag'], 'visible': True,
             'rect': transformed_box(dict(zip(('x', 'y', 'w', 'h'), row[1:5])), t),
             'asset': cached, 'text': row[7], 'size': row[8] * t['sy'], 'alpha': row[5],
-            'color': node.get('attributes', {}).get('color', '#ffffff'),
+            'color': color,
             'scaleType': node.get('attributes', {}).get('scaleType', '')})
     return result
 

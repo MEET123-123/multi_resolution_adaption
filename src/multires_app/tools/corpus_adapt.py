@@ -93,7 +93,7 @@ def adapt_cached(cache,targets,scenes,algorithm,audit_states,interaction_space='
     from multires_app.engine.scene_engine import load_model
     from multires_app.pipeline.scene_clusters import schedule_device
     from multires_app.pipeline.scene_pipeline import load_scene_algorithm
-    from multires_app.preview.component_refinement import refine_components
+    from multires_app.preview.component_refinement import refine_components,refresh_inferred_bindings
     from multires_app.interaction.regional_gestures import split_regional_gestures
     from multires_app.preview.scene_previewer import build_scene_preview
     from multires_app.layout.background_layers import split_background_layers
@@ -122,6 +122,8 @@ def adapt_cached(cache,targets,scenes,algorithm,audit_states,interaction_space='
                     s,project['assets'],verify_hit=False,cache=replay_cache),s['id']) for s in project['graph']['states']]
             project['model'].pop('assetNames',None)
     project['variantProjects']=[];project['anchorIRs']={}
+    refresh_inferred_bindings(project)
+    project['model'].pop('assetNames',None)
     split_background_layers(project)
     project['algorithmSpec']=algorithm;policy=load_scene_algorithm(algorithm);project['algorithm']=policy.name
     split_regional_gestures(project);refinement=refine_components(project)
@@ -216,8 +218,13 @@ def summarize(out):
                 for label,key in [('HWT','package'),('回读','audits')]:
                     if t.get(key):links.append(f'<a href="{Path(t[key]).as_uri()}">{label}</a>')
                 if m.get('project'):links.append(f'<a href="{Path(m["project"]).with_name("preview.html").as_uri()}">交互预览</a>')
+                detail=[]
+                if t.get('reviewReasons'):detail.append('布局复核：'+json.dumps(t['reviewReasons'],ensure_ascii=False))
+                unavailable={json.dumps(u,ensure_ascii=False,sort_keys=True) for e in t.get('renders',[]) for u in e['rendering'].get('unsupportedElements',[])}
+                if unavailable:detail.append('预览缺失依赖/未支持效果：'+'; '.join(sorted(unavailable)))
+                diagnostics=''.join('<p>'+html.escape(s)+'</p>' for s in detail)
                 imgs=''.join(f'<img title="{e["state"]} / {e["kind"]}" src="{Path(e["image"]).as_uri()}">' for e in t.get('renders',[])[:2])
-                rows.append(f'<tr><td>{html.escape(r["theme"])}</td><td>{html.escape(t["target"])}</td><td>{t["status"]}</td><td>{t.get("statesLaidOut",0)}</td><td>{t.get("auditCounts",{}).get("states",0)}</td><td>{" · ".join(links)}<p>{html.escape(t.get("error", ""))}</p>{imgs}</td></tr>')
+                rows.append(f'<tr><td>{html.escape(r["theme"])}</td><td>{html.escape(t["target"])}</td><td>{t["status"]}</td><td>{t.get("statesLaidOut",0)}</td><td>{t.get("auditCounts",{}).get("states",0)}</td><td>{" · ".join(links)}<p>{html.escape(t.get("error", ""))}</p>{diagnostics}{imgs}</td></tr>')
     targets=[t for r in results for m in r.get('manifests',[]) for t in m['targets']]
     summary={'themes':len(results),'manifestTargets':len(targets),'statuses':dict(Counter(t['status'] for t in targets)),
         'nativeAuditPassed':sum(bool(t.get('nativeAuditPassed')) for t in targets),

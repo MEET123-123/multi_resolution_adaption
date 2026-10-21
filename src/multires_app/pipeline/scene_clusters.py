@@ -305,8 +305,9 @@ def _schedule_device(project,device,algorithm,preserve_existing=False,_forced_fu
     from multires_app.layout.visual_geometry import background_rects
     source_backgrounds={sid:background_rects(project,l) for sid,l in reference_layouts.items()}
     target_backgrounds={sid:background_rects(project,l) for sid,l in layouts.items()}
-    from multires_app.layout.canvas_bounds import stable_resources
+    from multires_app.layout.canvas_bounds import stable_resources,waiting_regions
     stable_by_state={l['state']:stable_resources(project,l,reference_layouts.get(l['state'])) for l in device['layouts']}
+    waiting_by_state={l['state']:waiting_regions(project,l,reference_layouts.get(l['state'],l)) for l in device['layouts']}
     native_families={};native_first={};native_resources={};native_flow_samples={};native_flow_keys={}
     if getattr(algorithm,'name','')=='anchor-theme-layout-v1' and 'controls' in project['model']:
         from multires_app.pipeline.scene_pipeline import state_guard
@@ -383,6 +384,20 @@ def _schedule_device(project,device,algorithm,preserve_existing=False,_forced_fu
         glyph_scales={cid:shared_scales.get(cid,s) for cid,s in glyph_scales.items()}
         device['sharedResourceScales']=shared_scales
         device['nativeGlyphResourceScales']=glyph_scales
+    leaf_flow_cache={}
+    def leaf_relations(sid):
+        if getattr(algorithm,'name','')!='anchor-theme-layout-v1' or opts.get('groups') or not opts.get('inferScreenRelations',True):return []
+        guard=native_families.get(sid,sid)
+        if guard not in leaf_flow_cache:
+            from multires_app.layout.spatial_flow import infer_leaf_flows
+            ids=[s for s,g in native_families.items() if g==guard] or [sid];relations=[];seen=set()
+            for state_id in ids:
+                for r in infer_leaf_flows(project,reference_layouts.get(state_id,layouts[state_id]),layouts[state_id],source_vp,region,preferred):
+                    key=(r['first'],r['last'],r['axis'],tuple(r['firstRect'].values()),tuple(r['lastRect'].values()))
+                    if key in seen:continue
+                    seen.add(key);r['id']='flow:leaf:'+str(len(relations));relations.append(r)
+            leaf_flow_cache[guard]=relations
+        return leaf_flow_cache[guard]
     for layout_index,layout in enumerate(device["layouts"]):
         sid=layout["state"];request=analysis["requests"][sid];current=analysis["descriptions"][sid]
         if layout_index<_resume_prefix:continue
@@ -437,6 +452,7 @@ def _schedule_device(project,device,algorithm,preserve_existing=False,_forced_fu
             from multires_app.layout.spatial_flow import layout_flows,insertion_blockers,flow_errors,infer_flows
             prior_mapping=layouts[request['baseState']].get('transforms',{})
             flows=layout_flows(project,device,layout)
+            flows.extend(leaf_relations(sid))
             for src,dst in native_flow_samples.get(native_families.get(sid),[]):
                 es=[{'id':cid,'bbox':b,'current_visual_bbox':dst[cid],
                      'cornerShortcut':bool(comp_map[cid].get('cornerAttachment')),
@@ -474,7 +490,9 @@ def _schedule_device(project,device,algorithm,preserve_existing=False,_forced_fu
                  "sourceFrameBounds":source_frames.get(sid,{}),"frameBounds":target_frames.get(sid,{}),
                  "sourceBackgroundBounds":source_backgrounds.get(sid,{}),"backgroundBounds":target_backgrounds.get(sid,{}),
                  "flowSamples":native_flow_samples.get(native_families.get(sid),[(source_visuals.get(sid,{}),target_visuals.get(sid,{}))]),
+                 "leafFlows":leaf_relations(sid),
                  "stableResources":stable_by_state[sid],
+                 "waitingRegions":waiting_by_state[sid],
                  "cornerTargetFrameBounds":corner_refs.get(native_families.get(sid,sid),{}),
                  "inactiveCornerComponents":sorted(inactive_corners.get(sid,set())),
                  "anchorIRStore":project.setdefault('anchorIRs',{}),
@@ -611,4 +629,10 @@ def _schedule_device(project,device,algorithm,preserve_existing=False,_forced_fu
         if not c.get('pointerEffect'):continue
         for layout in device['layouts']:
             if c['id'] in layout['transforms']:layout['transforms'][c['id']]=dict(IDENTITY)
+    if getattr(algorithm,'name','')=='anchor-theme-layout-v1':
+        from multires_app.layout.stable_review import review_final
+        for layout in device['layouts']:
+            previous=[r for r in layout.get('adaptationReview',[]) if r.get('reason') not in
+                      {'component exceeds safe area','component below minimum scale','new overlap after layout'}]
+            layout['adaptationReview']=previous+review_final(project,device,layout)
     return device["layoutClusters"]

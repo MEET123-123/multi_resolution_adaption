@@ -189,13 +189,22 @@ def _audit_native_state(project,native,assets,target,state):
         if e['visible']:actual.setdefault(e['id'],[]).append(e)
     for values in actual.values():values.sort(key=lambda e:(round(e['rect']['y'],3),e['rect']['x']))
     expected=elements(project,layout);desc=describe_layout(project,layout);dynamic=set()
+    pointers={u for c in project['components'] if c.get('pointerEffect') for u in c['members']}
+    if pointers:
+        # Re-evaluate feedback against the touch actually used on the adapted
+        # control, rather than the pre-layout mock point saved in the cache.
+        pointer_model={**project['model'],'assetNames':list(project['assets'])}
+        live=replay_human_state(pointer_model,device['viewport']['width'],device['viewport']['height'],graph_state,project['assets'],verify_hit=False)
+        live.system.update({k:v for k,v in rt.system.items() if k.startswith('touch_')});live.cache.clear()
+        feedback={e['id']:e for e in live.snapshot(project['assets'],only_ids=pointers) if e['visible']}
+        expected=[{**e,'rect':feedback[e['id']]['rect']} if e['id'] in feedback else e for e in expected]
     for cid,d in desc.items():
         if d['role']=='decoration' and any(any(isinstance(v,str) and v.startswith('animated') for v in g[1][:2]) for g in d['geometry']):dynamic.add(cid)
     errors=[];missing=[];skipped=0;occurrences={}
     expected=sorted(expected,key=lambda e:(e['id'],round(e['rect']['y'],3),e['rect']['x']))
     for e in expected:
         cid=project['nodeComponents'].get(e['id']);b=e['rect']
-        if cid in dynamic or e['tag']=='Button':skipped+=1;continue
+        if cid in dynamic and e['id'] not in pointers or e['tag']=='Button':skipped+=1;continue
         if not e.get('visible',True) or e.get('alpha',1)<=0 or min(b['w'],b['h'])<=0:continue
         instance=occurrences.get(e['id'],0);occurrences[e['id']]=instance+1
         if instance>=len(actual.get(e['id'],[])):missing.append(e['id']+'#'+str(instance));continue

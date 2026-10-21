@@ -68,6 +68,18 @@ def analyze_bindings(model,samples,viewport,overrides=None):
                 same_parent=nodes[visual]['parent']==node['parent'];effect=visual in effect_nodes
                 score=.55*coverage+.2*intersection/max(1,ba+qa-intersection)+.15*(1-min(1,proximity))+.05*same_parent+.05*effect
                 candidates[visual].append(score);boxes[visual]=q
+        rejected=[]
+        for visual in list(candidates):
+            together=[s for s in by_sample if uid in s and visual in s]
+            # A crossing page can coincide once. A rigid attachment must hold
+            # throughout co-visibility, including the poses that did not score.
+            supported=sum(overlap(s[uid],s[visual])/max(1,min(s[uid]['w']*s[uid]['h'],s[visual]['w']*s[visual]['h']))>=.65 for s in together)
+            offsets=[((s[uid]['x']-s[visual]['x'])/max(1,s[uid]['w'],s[visual]['w']),
+                      (s[uid]['y']-s[visual]['y'])/max(1,s[uid]['h'],s[visual]['h'])) for s in together]
+            drift=max((max(v[a] for v in offsets)-min(v[a] for v in offsets) for a in (0,1)),default=0.)
+            if supported<.8*len(together) or drift>.3:
+                rejected.append(visual);candidates.pop(visual)
+        base['rejectedUnstableAnchors']=rejected
         ranked=sorted(((sum(scores)/len(scores),nid) for nid,scores in candidates.items()),reverse=True)
         if not ranked or ranked[0][0]<.7:
             result.append({**base,'status':'needs-review','confidence':ranked[0][0] if ranked else 0.,'candidates':[{'node':nid,'score':round(score,3)} for score,nid in ranked[:3]]});continue
@@ -94,7 +106,7 @@ def structural_boundaries(model,elements,viewport,clock_roots):
         if animated:continue
         descendants=[e for e in elements if e['visible'] and e['tag'] in DRAWABLE and e['id'].startswith(uid+'/')]
         bounds=box_union(e['rect'] for e in descendants)
-        if bounds['h']<viewport['height']*.42:continue
+        if bounds['h']<viewport['height']*.42 and bounds['w']<viewport['width']*1.25:continue
         # A containing card/panel surface is evidence of a deliberate composite.
         if any(e['parent']==uid and e['rect']['w']*e['rect']['h']>=bounds['w']*bounds['h']*.7 for e in descendants):continue
         children=[c for c in node['children'] if nodes[c]['tag'] in DRAWABLE|{'Group'}]

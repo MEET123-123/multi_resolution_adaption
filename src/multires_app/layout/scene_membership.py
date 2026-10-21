@@ -31,6 +31,9 @@ def scene_membership_errors(project,device,layout,native_elements=None):
         return result
     original=rows(source)
     backgrounds={u for c in project.get('components',[]) if c['role']=='background' for u in c['members']}
+    # Pointer feedback follows the actual target touch, which changes after
+    # layout. Its binding is checked against that live input during readback.
+    backgrounds.update(u for c in project.get('components',[]) if c.get('pointerEffect') for u in c['members'])
     actual=rows(layout,True) if native_elements is None else [(e['id'],e['rect']) for e in native_elements
         if e.get('visible') and e['tag']!='Group' and e['id'] in nodes]
     errors=[]

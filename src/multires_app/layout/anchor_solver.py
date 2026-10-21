@@ -68,6 +68,14 @@ def solve(ir, local, region, desired, frozen=None, constraints=None, min_scale=.
             add(y+b['y']*s>=region['y']-epsilon,label+':top')
             add(x+(b['x']+b['w'])*s<=region['x']+region['w']+epsilon,label+':right')
             add(y+(b['y']+b['h'])*s<=region['y']+region['h']+epsilon,label+':bottom')
+        for i,witness in enumerate(g.get('_waiting_regions',[])):
+            b=witness['rect']
+            for edge in witness['edges']:
+                axis=edge['axis'];size='w' if axis=='x' else 'h';position=x if axis=='x' else y
+                margin=edge['gap']*region[size]/edge['sourceExtent']
+                label=gid+':waiting:'+str(i)+':'+axis
+                if edge['edge']=='before':add(position+(b[axis]+b[size])*s<=region[axis]-margin,label)
+                else:add(position+b[axis]*s>=region[axis]+region[size]+margin,label)
         for cid,b in geo['leaves'].items():
             boxes[cid]={'x':x+b['x']*s,'y':y+b['y']*s,'w':b['w']*s,'h':b['h']*s}
         # Nested group targets are available to authored relational constraints.
