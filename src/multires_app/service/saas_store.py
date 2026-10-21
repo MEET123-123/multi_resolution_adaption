@@ -11,6 +11,15 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
+# SQLite classifies WAL teardown races, lock contention and antivirus-style file
+# locks as operational errors without a dedicated code, so match on the text.
+TRANSIENT_SQLITE_ERRORS=('readonly database','database is locked','database table is locked','unable to open database')
+
+
+def _transient(exc):
+    message=str(exc).lower()
+    return any(fragment in message for fragment in TRANSIENT_SQLITE_ERRORS)
+
 
 class ServiceStore:
     def __init__(self,root,max_active_per_client=3,max_active_total=12):
@@ -36,6 +45,33 @@ class ServiceStore:
         except Exception:
             db.rollback();raise
         finally:db.close()
+
+    def _write(self, body, attempts=4):
+        """Run a write transaction, retrying the transient SQLite failures.
+
+        In WAL mode SQLite tears down ``-wal``/``-shm`` when the last connection
+        closes. This store opens one connection per operation, and the API and
+        its worker run as separate processes, so the two sides can race on that
+        teardown and surface ``attempt to write a readonly database`` — reported
+        as SQLITE_READONLY, which SQLite never retries on its own.
+
+        ``body`` must be safe to repeat: it receives a fresh connection and is
+        rolled back before any retry, so it either commits once or not at all.
+        """
+        for attempt in range(attempts):
+            db=sqlite3.connect(self.database,timeout=10);db.row_factory=sqlite3.Row
+            try:
+                result=body(db);db.commit();return result
+            except sqlite3.OperationalError as exc:
+                try:db.rollback()
+                except sqlite3.Error:pass
+                if attempt==attempts-1 or not _transient(exc):raise
+                time.sleep(0.05*(2**attempt))
+            except Exception:
+                try:db.rollback()
+                except sqlite3.Error:pass
+                raise
+            finally:db.close()
 
     def create_client(self,name):
         if not isinstance(name,str) or not 1<=len(name)<=80:raise ValueError('client name must have 1–80 characters')
@@ -102,7 +138,7 @@ class ServiceStore:
     def enqueue(self,client,job,operation):
         self.job(client,job)
         if operation not in {'convert','apply','match'}:raise ValueError('unknown operation')
-        with self.connection() as db:
+        def body(db):
             db.execute('BEGIN IMMEDIATE');record=db.execute('SELECT * FROM jobs WHERE id=? AND client_id=?',(job,client)).fetchone()
             if operation=='convert' and record['status']!='uploading':raise ValueError('job is not awaiting conversion')
             if operation!='convert' and record['status']!='succeeded':raise ValueError('job is busy or has no completed result')
@@ -113,15 +149,18 @@ class ServiceStore:
             db.execute('INSERT INTO tasks(id,job_id,client_id,operation,status,revision,created) VALUES(?,?,?,?,?,?,?)',(task,job,client,operation,'queued',revision,time.time()))
             status={'convert':'queued','apply':'editing','match':'matching'}[operation]
             db.execute('UPDATE jobs SET status=?,updated=?,next_revision=next_revision+? WHERE id=?',(status,time.time(),int(operation=='apply'),job))
-        return {'id':task,'job':job,'operation':operation,'revision':revision,'previousRevision':record['active_revision']}
+            return task,revision,record['active_revision']
+        task,revision,previous=self._write(body)
+        return {'id':task,'job':job,'operation':operation,'revision':revision,'previousRevision':previous}
 
     def start_task(self,task):
-        with self.connection() as db:
+        def body(db):
             db.execute("UPDATE tasks SET status='running' WHERE id=?",(task['id'],))
             if task['operation']=='convert':db.execute("UPDATE jobs SET status='running',updated=? WHERE id=?",(time.time(),task['job']))
+        self._write(body)
 
     def finish_task(self,task,result=None,error=None):
-        with self.connection() as db:
+        def body(db):
             db.execute('UPDATE tasks SET status=?,result=?,error=? WHERE id=?',('failed' if error else 'succeeded',json.dumps(result) if result else None,error,task['id']))
             if error:
                 status='failed' if task['operation']=='convert' else 'succeeded'
@@ -129,6 +168,7 @@ class ServiceStore:
             elif task['operation'] in {'convert','apply'}:
                 db.execute("UPDATE jobs SET status='succeeded',active_revision=?,result=?,error=NULL,updated=? WHERE id=?",(task['revision'],json.dumps(result),time.time(),task['job']))
             else:db.execute("UPDATE jobs SET status='succeeded',updated=? WHERE id=?",(time.time(),task['job']))
+        self._write(body)
 
     def task(self,client,task_id):
         with self.connection() as db:row=db.execute('SELECT * FROM tasks WHERE id=? AND client_id=?',(task_id,client)).fetchone()
@@ -138,13 +178,14 @@ class ServiceStore:
 
     def activate_revision(self,client,job,revision):
         self.job(client,job)
-        with self.connection() as db:
+        def body(db):
             db.execute('BEGIN IMMEDIATE')
             status=db.execute('SELECT status FROM jobs WHERE id=?',(job,)).fetchone()['status']
             if status!='succeeded':raise ValueError('job is busy')
             row=db.execute("SELECT result FROM tasks WHERE job_id=? AND client_id=? AND revision=? AND operation IN ('convert','apply') AND status='succeeded'",(job,client,revision)).fetchone()
             if not row:raise KeyError('revision not found')
             db.execute('UPDATE jobs SET active_revision=?,result=?,updated=? WHERE id=?',(revision,row['result'],time.time(),job))
+        self._write(body)
 
     def recover_interrupted(self):
         # Call once at single-instance service startup, never per HTTP request.

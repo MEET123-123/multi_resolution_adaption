@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -52,7 +53,14 @@ class JobManager:
             result=json.loads(result_path.read_text(encoding='utf-8'))
             if result.get('workerError'):self.store.finish_task(task,error=result['workerError'])
             else:self.store.finish_task(task,result=result)
-        except Exception:
-            self.store.finish_task(task,error='worker execution failed; previous revision retained')
+        except Exception as exc:
+            # Keep the traceback next to the worker log; the task record only
+            # carries a short reason because clients read it.
+            try:
+                with (root/(task['id']+'.private.log')).open('a',encoding='utf-8') as log:
+                    log.write('\n[job-manager] '+traceback.format_exc())
+            except OSError:
+                pass
+            self.store.finish_task(task,error=f'worker execution failed: {type(exc).__name__}: {exc}; previous revision retained')
 
     def close(self):self.pool.shutdown(wait=True)
