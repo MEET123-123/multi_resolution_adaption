@@ -1,0 +1,72 @@
+{
+  "schema": "theme-layout-annotation/1",
+  "task_id": "",
+  "revision": 1,
+  "source": {
+    "package_path": null,
+    "package_sha256": null,
+    "project_path": null,
+    "project_sha256": null,
+    "scene_id": null,
+    "style_id": null,
+    "frame_path": null,
+    "frame_sha256": null,
+    "canvas": null,
+    "coordinate_unit": null,
+    "facts_path": null,
+    "animation_phase": null
+  },
+  "target": {
+    "canvas": null,
+    "coordinate_unit": null,
+    "safe_region": null,
+    "design_brief": null,
+    "brief_origin": null
+  },
+  "dataset": {
+    "theme_family": null,
+    "split": "pending",
+    "family_review": "pending",
+    "rights_status": "pending"
+  },
+  "annotations": {
+    "source_structure": {
+      "status": "pending",
+      "scene_type": null,
+      "groups": [],
+      "content_regions": [],
+      "relations": [],
+      "exclusion_sets": []
+    },
+    "target_layout": {
+      "status": "pending",
+      "mode": null,
+      "topology": "pending",
+      "group_boxes_1000": {},
+      "content_regions": [],
+      "relations": [],
+      "mapping": [],
+      "decision_note": null,
+      "reference_frame_path": null,
+      "reference_origin": null,
+      "local_tasks": []
+    },
+    "quality": {
+      "source_visual": "pending",
+      "grouping": "pending",
+      "relations": "pending",
+      "mapping": "pending",
+      "target_visual": "pending",
+      "interaction": "pending",
+      "writeback": "pending",
+      "notes": {}
+    }
+  },
+  "review": {
+    "stage": "draft",
+    "annotator": null,
+    "reviewer": null,
+    "adjudication_note": null,
+    "blocked_reason": null
+  }
+}

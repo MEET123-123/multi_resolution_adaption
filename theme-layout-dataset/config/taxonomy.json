@@ -1,0 +1,20 @@
+{
+  "schema": "theme-layout-taxonomy/1",
+  "roles": ["background", "foreground_subject", "clock", "date", "weather", "status", "shortcut", "panel", "option_list", "decoration", "other"],
+  "internal_layouts": ["rigid", "row", "column", "grid", "stack", "custom"],
+  "transform_policies": ["uniform_affine", "container_reflow", "fixed", "custom"],
+  "layout_modes": ["preserve", "proportional_scale", "reposition", "container_reflow", "multi_region", "topology_change"],
+  "relations": ["center_x", "center_y", "attach_left", "attach_right", "attach_top", "attach_bottom", "above", "left_of", "align_left", "align_center_y", "min_gap_x", "min_gap_y", "equal_gap", "same_scale", "preserve_aspect", "avoid_overlap", "allow_overlap", "z_before", "visual_hit_binding"],
+  "relation_origins": ["observed", "brief", "human", "algorithm_candidate"],
+  "scopes": ["source", "target", "both"],
+  "policies": ["preserve", "change", "optional"],
+  "strengths": ["required", "preferred"],
+  "bbox_bases": ["script", "visible", "hit", "clipped"],
+  "reference_origins": ["native_paired", "human_relayout", "human_reviewed_algorithm", "human_reviewed_model"],
+  "stages": ["draft", "source_reviewed", "target_reviewed", "adjudicated", "released", "blocked", "rejected"],
+  "section_statuses": ["pending", "reviewed", "blocked"],
+  "blocked_reasons": ["missing_asset", "renderer_unsupported", "ambiguous_group", "ambiguous_pair", "missing_design_brief", "topology_unsupported", "state_mismatch", "rights_pending"],
+  "exclusion_reasons": ["hidden_in_state", "offscreen_transition", "control_only", "background_not_reflowed", "duplicate_visual", "renderer_unsupported", "other"],
+  "quality_results": ["pending", "passed", "failed", "not_applicable"],
+  "offscreen_policies": ["inside", "state_driven", "allowed_transition"]
+}

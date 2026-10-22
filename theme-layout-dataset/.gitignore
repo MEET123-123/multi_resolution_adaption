@@ -1,0 +1,9 @@
+/incoming/*
+!/incoming/README.md
+/registry/*
+!/registry/README.md
+/runs/
+/annotations/*
+!/annotations/README.md
+__pycache__/
+*.pyc

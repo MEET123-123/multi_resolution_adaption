@@ -1,0 +1,13 @@
+{
+  "id": null,
+  "parent_id": null,
+  "roles": [],
+  "member_ids": [],
+  "source_bbox_1000": null,
+  "bbox_basis": null,
+  "internal_layout": null,
+  "transform_policy": null,
+  "hit_region_ids": [],
+  "offscreen_policy": null,
+  "evidence": null
+}
