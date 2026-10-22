@@ -559,11 +559,13 @@ class LiveSession:
                 'timeline': outcome.get('timeline'), 'plan': self.plan()}
 
 
-def serve_live(source=None, port=8767, output=Path('preview-live'), allow_import=True):
+def serve_live(source=None, port=8767, output=Path('preview-live'), allow_import=True, vlm_config=None):
     source = Path(source).resolve() if source else None
     output = Path(output).resolve()
     token = secrets.token_urlsafe(32)
     state = {'session': LiveSession(source, output / uuid.uuid4().hex[:8]) if source else None}
+    from multires_app.preview.reconstruction_live import ReconstructionJobs
+    reconstruction = ReconstructionJobs(output,vlm_config)
     guard = threading.Lock()
     page = Path(__file__).with_name('live_preview.html').read_text(encoding='utf-8')
     script = Path(__file__).with_name('live_preview.js').read_text(encoding='utf-8')
@@ -613,6 +615,15 @@ def serve_live(source=None, port=8767, output=Path('preview-live'), allow_import
                 self.end_headers()
                 self.wfile.write(data)
                 return
+            if path.startswith('/reconstruction/'):
+                target=reconstruction.artifact(path)
+                if target is None:
+                    self.send_error(404);return
+                data=target.read_bytes();self.send_response(200)
+                self.send_header('Content-Type',mimetypes.guess_type(target.name)[0] or 'application/octet-stream')
+                self.send_header('Content-Length',str(len(data)));self.send_header('Cache-Control','no-store');self.end_headers()
+                if self.command!='HEAD':self.wfile.write(data)
+                return
             self.send_error(404)
 
         do_HEAD = do_GET
@@ -644,6 +655,7 @@ def serve_live(source=None, port=8767, output=Path('preview-live'), allow_import
                 try:
                     with guard:
                         state['session'] = LiveSession(target, output / uuid.uuid4().hex[:8], filename=name)
+                        state.pop('original_session',None)
                         payload = state['session'].plan()
                 except Exception as exc:
                     target.unlink(missing_ok=True)
@@ -659,7 +671,33 @@ def serve_live(source=None, port=8767, output=Path('preview-live'), allow_import
             except ValueError:
                 self.send_json(400, {'error': 'invalid json'})
                 return
+            if not isinstance(body,dict):
+                self.send_json(400,{'error':'请求必须为 JSON 对象'});return
             session = state['session']
+            if operation.startswith('/api/reconstruction/'):
+                try:
+                    with guard:
+                        action=operation.rsplit('/',1)[-1]
+                        if action=='inspect':result=reconstruction.inspect(body.get('project',''),state.get('original_session',session))
+                        elif action=='analyse':result=reconstruction.analyse(state.get('original_session',session))
+                        elif action=='start':result=reconstruction.start(body,state.get('original_session',session))
+                        elif action=='status':result=reconstruction.status(body.get('id',''))
+                        elif action=='activate':
+                            result=reconstruction.activate(body.get('id',''))
+                            reconstruction.inspect(result['project'],state.get('original_session',session))
+                            candidate=LiveSession(Path(result['package']),output/uuid.uuid4().hex[:8])
+                            candidate.width=result['viewport']['width'];candidate.height=result['viewport']['height'];candidate.reset()
+                            if session is not None:state.setdefault('original_session',session)
+                            state['session']=candidate;result=candidate.plan()
+                        elif action=='restore':
+                            original=state.pop('original_session',None)
+                            if original is None:raise ValueError('当前没有待返回的原主题')
+                            state['session']=original;result=original.plan()
+                        else:raise ValueError('未知重构操作')
+                    self.send_json(200,result)
+                except (ValueError,KeyError,OSError) as exc:self.send_json(400,{'error':str(exc)[:700]})
+                except Exception:self.send_json(500,{'error':'布局重构请求失败，请查看任务报告'})
+                return
             if session is None:
                 self.send_json(409, {'error': '尚未导入主题'})
                 return

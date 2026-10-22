@@ -121,3 +121,8 @@ system.time.hour1 / hour2 / min1 / min2 / sec1 / sec2
 `press` / `drag start|move|end` 的进度、夹取、终点判定、回弹、解锁、变量清理，和一条
 真实 HTTP 往返。`tests/drive_live_drag.cjs` 是配合 Chrome DevTools 协议做端到端拖动的脚本，
 不是 unittest 的一部分。
+## 横屏布局重构入口
+
+实时预览右侧新增「布局重构」页签，可分析当前主题或复用已有场景项目，调用离线模板或 OpenAI 兼容多模态服务，生成候选并反馈迭代。通过脚本回读的候选可载入当前实时预览，继续手势操作并返回原主题。
+
+配置与接口详见 [横屏布局重构](LAYOUT_RECONSTRUCTION.md)。启动时增加 `--vlm-config configs/my-layout-vlm.json` 接入模型；未配置时使用明确标记的离线流程。

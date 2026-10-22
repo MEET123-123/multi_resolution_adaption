@@ -67,6 +67,17 @@
   .speed span{white-space:nowrap;flex:none}
   .speed input{flex:1;min-width:0}
   .device.hidden{display:none}
+  .recon-field{display:grid;gap:5px;margin:12px 0;font-size:12px}
+  .recon-field input,.recon-field select{width:100%;padding:8px;border:1px solid var(--line,#d7dfe6);border-radius:7px;background:white;color:#263b50}
+  .recon-actions{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+  .recon-actions[hidden]{display:none}
+  #reconStatus{white-space:pre-wrap;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+  #reconDialog{width:min(1100px,94vw);border:1px solid #ced6de;border-radius:12px;padding:20px}
+  #reconDialog::backdrop{background:#13223688}
+  .recon-gallery{display:flex;gap:14px;align-items:start;justify-content:center}
+  .recon-gallery figure{margin:0;flex:1;min-width:0}
+  .recon-gallery img{width:100%;max-height:65vh;object-fit:contain;background:#e7ebef}
+  .recon-gallery figcaption{font:13px system-ui;margin:8px 0}
 </style>
 </head>
 <body>
@@ -95,6 +106,7 @@
       <button class="active" data-tab="gesture">手势</button>
       <button data-tab="vars">变量</button>
       <button data-tab="diag">诊断</button>
+      <button data-tab="recon">布局重构</button>
     </div>
     <div class="panels">
       <div class="panel active" id="panel-gesture">
@@ -118,11 +130,29 @@
         <div class="note">解释器不支持或需要实机确认的项，不会静默通过。</div>
         <div id="diags"></div>
       </div>
+      <div class="panel" id="panel-recon">
+        <div class="note">选择代表交互场景，让模型提出横屏构图；约束求解后渲染实际画面，再反馈给模型。候选会写入独立目录。</div>
+        <div class="recon-actions"><button id="reconAnalyse">分析当前主题</button></div>
+        <label class="recon-field">或连接已有场景项目<input id="reconProject" placeholder="F:\multi-res\...\scenes\project.json"></label>
+        <button id="reconInspect">连接场景项目</button>
+        <label class="recon-field">横屏目标<select id="reconTarget"></select></label>
+        <label class="recon-field">交互场景<select id="reconState"></select></label>
+        <label class="recon-field">建议来源<select id="reconProvider"><option value="mock">离线规则（验证流程）</option><option value="openai">多模态模型（OpenAI 兼容）</option></select></label>
+        <label class="recon-field">离线构图模板<select id="reconTemplate"><option value="">自动选择</option></select></label>
+        <div class="note">模型模式会将原始图、目标渲染、组件图集与布局信息发送至启动时配置的服务。请选择支持图像输入的模型。</div>
+        <div class="recon-actions"><button id="reconStart">生成并反馈迭代</button></div>
+        <div id="reconStatus" role="status">尚未连接场景项目</div>
+        <div class="recon-actions" id="reconResults" hidden>
+          <button id="reconCompare">对比实际渲染</button><a id="reconReport" target="_blank" rel="noopener">完整报告 / 下载</a>
+          <button id="reconActivate" disabled>载入候选并交互</button><button id="reconRestore">返回原主题</button>
+        </div>
+      </div>
     </div>
   </aside>
 </main>
 <div class="drop" id="drop">松开导入主题包</div>
 <div class="toast" id="toast"></div>
+<dialog id="reconDialog"><button id="reconClose">关闭</button><h2>原始场景与横屏实际渲染</h2><div class="recon-gallery"><figure><figcaption>原始场景</figcaption><img id="reconSourceImg" alt="原始竖屏场景"></figure><figure><figcaption>重构前目标</figcaption><img id="reconBeforeImg" alt="重构前横屏"></figure><figure><figcaption id="reconAfterCaption">选中候选（实际求解）</figcaption><img id="reconAfterImg" alt="候选实际渲染"></figure></div></dialog>
 <script>
 const LIVE_CONFIG=__LIVE_CONFIG__;
 __SCRIPT__

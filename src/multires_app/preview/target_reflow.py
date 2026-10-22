@@ -153,7 +153,7 @@ def build_reflow_catalog(project, request, layout, asset_root):
             'constraints':request['constraints'],'groups':groups,'animationScaleSets':animation_scales},templates
 
 
-def solve_reflow(catalog, request, matches, attempt=0):
+def solve_reflow(catalog, request, matches, attempt=0, *, constraint_hook=None):
     """Try target-driven separation axes; keep old geometry at weak strength.
 
     Safety, aspect ratio and internal group geometry are hard constraints. Source
@@ -231,6 +231,8 @@ def solve_reflow(catalog, request, matches, attempt=0):
             f=first['matchBox'];l=last['matchBox'];fb=first['matchBox'];lb=last['matchBox']
             fv=fx if axis=='x' else fy;lv=lx if axis=='x' else ly
             solver.addConstraint(fv+(f[axis]-fb[axis]+f[dim])*fs<=lv+(l[axis]-lb[axis])*ls);count+=1
+    if constraint_hook is not None:
+        constraint_hook(solver,expressions,variables)
     solver.updateVariables();components=[];resolved=[];auxiliary=[]
     for g in movable:
         alias=g['id'];x,y,s=[v.value() for v in variables[alias]];b=g['matchBox']

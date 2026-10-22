@@ -356,6 +356,7 @@ def main() -> int:
     p_live.add_argument("--port", type=int, default=8767, help="监听端口，默认 8767（serve 用的是 8766）")
     p_live.add_argument("--out", type=Path, default=Path("preview-live"), help="素材解包目录，默认 preview-live")
     p_live.add_argument("--no-import", action="store_true", help="只预览启动时指定的主题包")
+    p_live.add_argument("--vlm-config",type=Path,help="布局重构的 OpenAI 兼容服务配置 JSON")
     p_tools = sub.add_parser("tools", help="批量转换、重新布局、打包和服务管理工具")
     p_tools.add_argument("tool_args", nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -395,7 +396,7 @@ def main() -> int:
             serve_project(args.project,args.port)
         elif args.command == "live":
             from multires_app.preview.live_preview import serve_live
-            serve_live(args.source, args.port, args.out, not args.no_import)
+            serve_live(args.source, args.port, args.out, not args.no_import,args.vlm_config)
         elif args.command == "relayout":
             from multires_app.pipeline.scene_pipeline import relayout_project
             print(json.dumps(relayout_project(args.project, args.algorithm, args.components, args.anchor_config), ensure_ascii=False, indent=2))

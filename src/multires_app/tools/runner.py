@@ -25,6 +25,7 @@ COMMANDS={
     'reference-workflow':'reference_workflow',
     'reference-pairs':'reference_pairs',
     'corpus-adapt':'corpus_adapt',
+    'layout-reconstruct':'layout_reconstruct',
     'workbench':'workbench',
 }
 

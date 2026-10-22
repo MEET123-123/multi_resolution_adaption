@@ -12,6 +12,7 @@
 - [布局美学评价与迭代优化](guides/AESTHETICS.md)
 - [批量评测、badcase 归因与反向优化](guides/EVAL_AND_BADCASE.md)
 - [实时预览：导入主题包、手势与动画](guides/LIVE_PREVIEW.md)
+- [多模态反馈与平板构图：横屏布局重构](guides/LAYOUT_RECONSTRUCTION.md)
 - [可插拔评测闭环：居中保持、ReDeCheck 关系图与固定回归](guides/FEEDBACK_LOOP.md)
 - [Qwen3-VL 布局微调 MVP：mock、批量标注与真实配对接口](guides/QWEN_LAYOUT_MVP.md)
 - [模型 MVP 接口审计](guides/IMPLEMENTATION_AUDIT.md) / [缓存数据流水线](guides/DATA_PIPELINE_PLAN.md)
@@ -29,6 +30,7 @@
 
 ## 修复与验证报告
 
+- [横屏布局重构 MVP：模板、反馈接口与真实主题试运行](reports/LAYOUT_RECONSTRUCTION_MVP.md)
 - [全主题回归：连续交互、屏外场景、资源分离与脚本回读修复](reports/CORPUS_REGRESSION_FIXES.md)
 - [初升与叠峰：真实主题模型流程验证与限制](reports/REAL_THEME_MVP_RESULTS.md)
 - [Qwen3-VL mock 微调：实测结果、约束检查与质量门禁](reports/QWEN_MVP_RESULTS.md)

@@ -444,7 +444,64 @@
   }));
 
   /* ---------- clock refresh ---------- */
+  let reconstructionJob=null;
+  function optionsFor(id,rows,label){
+    $(id).replaceChildren(...rows.map(row=>{const o=document.createElement('option');o.value=typeof row==='string'?row:row.id;o.textContent=typeof row==='string'?row:label(row);return o;}));
+  }
+  function connectReconstruction(info){
+    $('reconResults').hidden=true;$('reconActivate').disabled=true;
+    $('reconProject').value=info.project;optionsFor('reconTarget',info.targets);
+    optionsFor('reconState',info.states,s=>`${s.id} · ${s.label}`);
+    if(info.recommendedState)$('reconState').value=info.recommendedState;
+    optionsFor('reconTemplate',[{id:'',name:'自动选择'},...info.templates],t=>t.name);
+    $('reconStatus').textContent=`已连接 ${info.states.length} 个已分析场景。${info.recommendationScope||'请选择代表场景。'}\n模型服务：${info.openaiConfigured?'已配置':'未配置，可先运行离线流程'}`;
+  }
+  async function waitReconstruction(job){
+    reconstructionJob=job.id;$('reconStart').disabled=true;$('reconAnalyse').disabled=true;
+    $('reconResults').hidden=true;$('reconActivate').disabled=true;
+    try{
+      while(job.status==='running'){
+        $('reconStatus').textContent=job.message;
+        await new Promise(resolve=>setTimeout(resolve,1800));
+        job=await api('reconstruction/status',{id:job.id});
+      }
+      if(job.status==='failed')throw new Error(job.message);
+      if(job.kind==='analysis'){connectReconstruction(job.result);return;}
+      const r=job.result;const selected=r.candidates.find(c=>c.id===r.selected);
+      $('reconStatus').textContent=`结果：${r.status} · ${r.provider}\n基线 ${r.baseline.score} → ${selected?.metrics?.score??r.baseline.score}\n${r.readbackPassed?'脚本回读通过；可载入候选继续手势操作。':'未发布新包，查看报告中的拒绝或未改进原因。'}\n${r.errors.map(e=>e.error).join('\n')}`;
+      $('reconReport').href=r.reportUrl;$('reconResults').hidden=false;
+      $('reconSourceImg').src=r.sourceImageUrl;$('reconBeforeImg').src=r.beforeImageUrl;
+      $('reconAfterImg').src=r.selectedImageUrl||r.beforeImageUrl;
+      $('reconAfterCaption').textContent=r.selected?'选中候选（实际求解）':'没有发布新候选，保留原布局';
+      $('reconActivate').disabled=!r.readbackPassed;
+    }catch(error){$('reconStatus').textContent=error.message;toast(error.message);}
+    finally{$('reconStart').disabled=false;$('reconAnalyse').disabled=false;}
+  }
+  $('reconInspect').addEventListener('click',async()=>{
+    try{connectReconstruction(await api('reconstruction/inspect',{project:$('reconProject').value}));}
+    catch(error){$('reconStatus').textContent=error.message;}
+  });
+  $('reconAnalyse').addEventListener('click',async()=>{
+    try{await waitReconstruction(await api('reconstruction/analyse',{}));}catch(error){$('reconStatus').textContent=error.message;}
+  });
+  $('reconStart').addEventListener('click',async()=>{
+    try{await waitReconstruction(await api('reconstruction/start',{project:$('reconProject').value,target:$('reconTarget').value,state:$('reconState').value,provider:$('reconProvider').value,template:$('reconProvider').value==='mock'?$('reconTemplate').value:undefined}));}
+    catch(error){$('reconStatus').textContent=error.message;}
+  });
+  $('reconProvider').addEventListener('change',()=>{$('reconTemplate').disabled=$('reconProvider').value!=='mock';});
+  $('reconCompare').addEventListener('click',()=>$('reconDialog').showModal());
+  $('reconClose').addEventListener('click',()=>$('reconDialog').close());
+  $('reconActivate').addEventListener('click',async()=>{
+    try{const next=await api('reconstruction/activate',{id:reconstructionJob});clearState();render(next);toast('已载入候选，当前为脚本初始场景');}catch(error){toast(error.message);}
+  });
+  $('reconRestore').addEventListener('click',async()=>{
+    try{const next=await api('reconstruction/restore',{});clearState();render(next);}catch(error){toast(error.message);}
+  });
+
   async function bootstrap() {
+    const initialProject=new URLSearchParams(location.search).get('project');
+    if(initialProject)$('reconProject').value=initialProject;
+    if(location.hash==='#reconstruction')document.querySelector('[data-tab="recon"]').click();
     try {
       const next = await api('plan', {});
       render(next);
