@@ -1,0 +1,20 @@
+{
+  "base": {
+    "samples": 6,
+    "valid": 6,
+    "validRate": 1.0,
+    "teacherMAE1000": 97.2589375
+  },
+  "lora": {
+    "samples": 6,
+    "valid": 6,
+    "validRate": 1.0,
+    "teacherMAE1000": 119.32458333333334
+  },
+  "commonValidSamples": 6,
+  "commonBaseMAE1000": 97.2589375,
+  "commonLoraMAE1000": 119.32458333333334,
+  "scope": "6 fixed held-out samples, one per test family/device; teacher agreement only; full test has 55 samples",
+  "validationBefore": 1.4085039230576677,
+  "validationAfter": 1.3048770713998619
+}

@@ -1,0 +1,34 @@
+{
+  "status": "complete",
+  "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+  "adapter": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\adapter",
+  "epochs": 1,
+  "examplesSeen": 140,
+  "optimizerSteps": 35,
+  "trainableParameters": 3211264,
+  "changedAdapterTensors": 224,
+  "validationBefore": {
+    "loss": 1.4085039230576677,
+    "assistantTokens": 5946,
+    "samples": 24
+  },
+  "validationAfter": {
+    "epoch": 1,
+    "checkpoint": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\checkpoints\\epoch-1",
+    "loss": 1.3048770713998619,
+    "assistantTokens": 5946,
+    "samples": 24
+  },
+  "validationRelativeLossReduction": 0.07357228472097277,
+  "first20MeanLoss": 1.3642594993114472,
+  "last20MeanLoss": 1.1968543529510498,
+  "seconds": 252.35899999999674,
+  "peakAllocatedGiB": 3.8842029571533203,
+  "gpu": "NVIDIA GeForce RTX 4060",
+  "visionEncoderFrozen": true,
+  "weakLabels": true,
+  "scope": "one local algorithm-distillation experiment; no human/native quality certification",
+  "adapterSha256": {
+    "adapter_model.safetensors": "bddb8bdfc3714948c5009b90ae5d8208cf06bcd2e9489c32c2a9fed35c9fb1bd"
+  }
+}

@@ -1,0 +1,284 @@
+{
+  "e90cdd9aa3f0cb918ec673b7f143eaebd264a941ef7d9add983c312da52b50e7": {
+    "provider": "Qwen3-VL-base",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": null,
+    "modelEvidence": true,
+    "rawText": "```json\n{\n  \"schema\": \"multires-layout/1\",\n  \"groups\": {\n    \"g0\": [80.556, 75.174, 837.037, 173.932],\n    \"g1\": [44.444, 504.404, 151.852, 264.957],\n    \"g2\": [260.185, 955.556, 467.593, 9.402],\n    \"g3\": [0.0, -38.462, 1000.0, 1076.923]\n  }\n}\n```",
+    "seconds": 22.671000000002095,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          80.556,
+          75.174,
+          837.037,
+          173.932
+        ],
+        "g1": [
+          44.444,
+          504.404,
+          151.852,
+          264.957
+        ],
+        "g2": [
+          260.185,
+          955.556,
+          467.593,
+          9.402
+        ],
+        "g3": [
+          0.0,
+          -38.462,
+          1000.0,
+          1076.923
+        ]
+      }
+    }
+  },
+  "27b8f274194141764392573fe10e0738cc5168221d8fbbfe42c5bd71bb3fc86a": {
+    "provider": "Qwen3-VL-base",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": null,
+    "modelEvidence": true,
+    "rawText": "```json\n{\n  \"schema\": \"multires-layout/1\",\n  \"groups\": {\n    \"g0\": [80.556, 75.174, 837.037, 173.932],\n    \"g1\": [44.444, 504.404, 151.852, 264.957],\n    \"g2\": [260.185, 955.556, 467.593, 9.402],\n    \"g3\": [0.0, -38.462, 1000.0, 1076.923]\n  }\n}\n```",
+    "seconds": 17.5,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          80.556,
+          75.174,
+          837.037,
+          173.932
+        ],
+        "g1": [
+          44.444,
+          504.404,
+          151.852,
+          264.957
+        ],
+        "g2": [
+          260.185,
+          955.556,
+          467.593,
+          9.402
+        ],
+        "g3": [
+          0.0,
+          -38.462,
+          1000.0,
+          1076.923
+        ]
+      }
+    }
+  },
+  "5743108dc92a8419f643c90e46178269fb8a8b971fa58c74f48e758061d6fae4": {
+    "provider": "Qwen3-VL-base",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": null,
+    "modelEvidence": true,
+    "rawText": "```json\n{\n  \"schema\": \"multires-layout/1\",\n  \"groups\": {\n    \"g0\": [80.556, 75.174, 837.037, 173.932],\n    \"g1\": [44.444, 504.404, 151.852, 264.957],\n    \"g2\": [260.185, 955.556, 467.593, 9.402],\n    \"g3\": [0.0, -38.462, 1000.0, 1076.923]\n  }\n}\n```",
+    "seconds": 17.34299999999348,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          80.556,
+          75.174,
+          837.037,
+          173.932
+        ],
+        "g1": [
+          44.444,
+          504.404,
+          151.852,
+          264.957
+        ],
+        "g2": [
+          260.185,
+          955.556,
+          467.593,
+          9.402
+        ],
+        "g3": [
+          0.0,
+          -38.462,
+          1000.0,
+          1076.923
+        ]
+      }
+    }
+  },
+  "62229a4ec18d7b8f86968b5e6aa744dcb70d88888da256b97d47065bfc624e07": {
+    "provider": "Qwen3-VL-base",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": null,
+    "modelEvidence": true,
+    "rawText": "```json\n{\n  \"schema\": \"multires-layout/1\",\n  \"groups\": {\n    \"g0\": [29.167, 431.019, 78.704, 277.778],\n    \"g1\": [80.918, 212.341, 870.674, 763.817],\n    \"g2\": [249.074, 75.231, 502.315, 95.37],\n    \"g3\": [0.0, 0.0, 1000.926, 138.889]\n  }\n}\n```",
+    "seconds": 16.921000000002095,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          29.167,
+          431.019,
+          78.704,
+          277.778
+        ],
+        "g1": [
+          80.918,
+          212.341,
+          870.674,
+          763.817
+        ],
+        "g2": [
+          249.074,
+          75.231,
+          502.315,
+          95.37
+        ],
+        "g3": [
+          0.0,
+          0.0,
+          1000.926,
+          138.889
+        ]
+      }
+    }
+  },
+  "2b2e45fc83e99e014f9cfe4ac32ccc85f08eabe44c825aa84f757d38e7ad77cd": {
+    "provider": "Qwen3-VL-base",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": null,
+    "modelEvidence": true,
+    "rawText": "```json\n{\n  \"schema\": \"multires-layout/1\",\n  \"groups\": {\n    \"g0\": [29.167, 431.019, 78.704, 277.778],\n    \"g1\": [80.918, 212.341, 870.674, 763.817],\n    \"g2\": [249.074, 75.231, 502.315, 95.37],\n    \"g3\": [0.0, 0.0, 1000.926, 138.889]\n  }\n}\n```",
+    "seconds": 17.390999999988708,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          29.167,
+          431.019,
+          78.704,
+          277.778
+        ],
+        "g1": [
+          80.918,
+          212.341,
+          870.674,
+          763.817
+        ],
+        "g2": [
+          249.074,
+          75.231,
+          502.315,
+          95.37
+        ],
+        "g3": [
+          0.0,
+          0.0,
+          1000.926,
+          138.889
+        ]
+      }
+    }
+  },
+  "e870aa123e8c3e13bd40f0e7b865e7201574d26c9a9808bd5c94e03ffe42e6e1": {
+    "provider": "Qwen3-VL-base",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": null,
+    "modelEvidence": true,
+    "rawText": "```json\n{\n  \"schema\": \"multires-layout/1\",\n  \"groups\": {\n    \"g0\": [29.167, 431.019, 78.704, 277.778],\n    \"g1\": [80.918, 212.341, 870.674, 763.817],\n    \"g2\": [249.074, 75.231, 502.315, 95.37],\n    \"g3\": [0.0, 0.0, 1000.926, 138.889]\n  }\n}\n```",
+    "seconds": 17.360000000000582,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          29.167,
+          431.019,
+          78.704,
+          277.778
+        ],
+        "g1": [
+          80.918,
+          212.341,
+          870.674,
+          763.817
+        ],
+        "g2": [
+          249.074,
+          75.231,
+          502.315,
+          95.37
+        ],
+        "g3": [
+          0.0,
+          0.0,
+          1000.926,
+          138.889
+        ]
+      }
+    }
+  }
+}

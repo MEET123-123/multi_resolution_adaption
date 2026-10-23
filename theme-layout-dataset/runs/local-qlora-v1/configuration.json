@@ -1,0 +1,20 @@
+{
+  "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+  "bundle": "F:\\multi-res\\theme-layout-dataset\\runs\\auto-pairs-v1\\server-bundle",
+  "trainExamples": 140,
+  "validationExamples": 24,
+  "testSubset": 6,
+  "epochs": 1,
+  "seed": 23,
+  "learningRate": 0.0001,
+  "gradientAccumulation": 4,
+  "maxPixels": 100352,
+  "maxLength": 4096,
+  "loraRank": 8,
+  "quantization": "NF4 4bit double quantization",
+  "trainSha256": "9cc51bf89f12418692c64e519b9a51fe9f2b07883c5e96cd66b2f9cb97e09e77",
+  "validationSha256": "850c149081d9a3eab99e81907bdf07d3f1a5409995815ff16bd1e3401d21577d",
+  "manifestSha256": "1dd3859c1e7c9c45a5a881a5aac89d4426ac6eaab4de1c562f72d1a9d492515c",
+  "scriptSha256": "a591e7a9d55cd431898669b52221ec51669d9b9ecda6a9a58b353ac3a834a231",
+  "supervision": "weak algorithmic teacher"
+}

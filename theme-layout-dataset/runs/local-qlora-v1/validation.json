@@ -1,0 +1,15 @@
+[
+  {
+    "epoch": 0,
+    "loss": 1.4085039230576677,
+    "assistantTokens": 5946,
+    "samples": 24
+  },
+  {
+    "epoch": 1,
+    "checkpoint": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\checkpoints\\epoch-1",
+    "loss": 1.3048770713998619,
+    "assistantTokens": 5946,
+    "samples": 24
+  }
+]

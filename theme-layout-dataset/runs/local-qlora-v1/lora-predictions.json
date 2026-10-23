@@ -1,0 +1,284 @@
+{
+  "e90cdd9aa3f0cb918ec673b7f143eaebd264a941ef7d9add983c312da52b50e7": {
+    "provider": "Qwen3-VL-LoRA",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\adapter",
+    "modelEvidence": true,
+    "rawText": "{\"schema\":\"multires-layout/1\",\"groups\":{\"g0\":[100.0,100.0,400.0,200.0],\"g1\":[100.0,500.0,100.0,200.0],\"g2\":[200.0,900.0,100.0,10.0],\"g3\":[0.0,-100.0,1000.0,1000.0]}}",
+    "seconds": 21.468000000008033,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          100.0,
+          100.0,
+          400.0,
+          200.0
+        ],
+        "g1": [
+          100.0,
+          500.0,
+          100.0,
+          200.0
+        ],
+        "g2": [
+          200.0,
+          900.0,
+          100.0,
+          10.0
+        ],
+        "g3": [
+          0.0,
+          -100.0,
+          1000.0,
+          1000.0
+        ]
+      }
+    }
+  },
+  "27b8f274194141764392573fe10e0738cc5168221d8fbbfe42c5bd71bb3fc86a": {
+    "provider": "Qwen3-VL-LoRA",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\adapter",
+    "modelEvidence": true,
+    "rawText": "{\"schema\":\"multires-layout/1\",\"groups\":{\"g0\":[120.0,100.0,600.0,200.0],\"g1\":[100.0,450.0,100.0,250.0],\"g2\":[200.0,950.0,100.0,10.0],\"g3\":[0.0,-40.0,1000.0,1076.923]}}",
+    "seconds": 16.764999999999418,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          120.0,
+          100.0,
+          600.0,
+          200.0
+        ],
+        "g1": [
+          100.0,
+          450.0,
+          100.0,
+          250.0
+        ],
+        "g2": [
+          200.0,
+          950.0,
+          100.0,
+          10.0
+        ],
+        "g3": [
+          0.0,
+          -40.0,
+          1000.0,
+          1076.923
+        ]
+      }
+    }
+  },
+  "5743108dc92a8419f643c90e46178269fb8a8b971fa58c74f48e758061d6fae4": {
+    "provider": "Qwen3-VL-LoRA",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\adapter",
+    "modelEvidence": true,
+    "rawText": "{\"schema\":\"multires-layout/1\",\"groups\":{\"g0\":[100.0,100.0,400.0,200.0],\"g1\":[100.0,500.0,100.0,200.0],\"g2\":[200.0,900.0,100.0,10.0],\"g3\":[0.0,-100.0,100.0,100.0]}}",
+    "seconds": 15.671000000002095,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          100.0,
+          100.0,
+          400.0,
+          200.0
+        ],
+        "g1": [
+          100.0,
+          500.0,
+          100.0,
+          200.0
+        ],
+        "g2": [
+          200.0,
+          900.0,
+          100.0,
+          10.0
+        ],
+        "g3": [
+          0.0,
+          -100.0,
+          100.0,
+          100.0
+        ]
+      }
+    }
+  },
+  "62229a4ec18d7b8f86968b5e6aa744dcb70d88888da256b97d47065bfc624e07": {
+    "provider": "Qwen3-VL-LoRA",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\adapter",
+    "modelEvidence": true,
+    "rawText": "{\"schema\":\"multires-layout/1\",\"groups\":{\"g0\":[29.167,431.019,78.704,277.778],\"g1\":[80.918,212.341,870.674,763.817],\"g2\":[249.074,75.231,502.315,95.37],\"g3\":[0.0,0.0,1000.926,138.889]}}",
+    "seconds": 19.047000000005937,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          29.167,
+          431.019,
+          78.704,
+          277.778
+        ],
+        "g1": [
+          80.918,
+          212.341,
+          870.674,
+          763.817
+        ],
+        "g2": [
+          249.074,
+          75.231,
+          502.315,
+          95.37
+        ],
+        "g3": [
+          0.0,
+          0.0,
+          1000.926,
+          138.889
+        ]
+      }
+    }
+  },
+  "2b2e45fc83e99e014f9cfe4ac32ccc85f08eabe44c825aa84f757d38e7ad77cd": {
+    "provider": "Qwen3-VL-LoRA",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\adapter",
+    "modelEvidence": true,
+    "rawText": "{\"schema\":\"multires-layout/1\",\"groups\":{\"g0\":[29.167,431.019,78.704,277.778],\"g1\":[80.918,212.341,870.674,763.817],\"g2\":[249.074,75.231,502.315,95.37],\"g3\":[0.0,0.0,1000.926,138.889]}}",
+    "seconds": 18.718999999997322,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          29.167,
+          431.019,
+          78.704,
+          277.778
+        ],
+        "g1": [
+          80.918,
+          212.341,
+          870.674,
+          763.817
+        ],
+        "g2": [
+          249.074,
+          75.231,
+          502.315,
+          95.37
+        ],
+        "g3": [
+          0.0,
+          0.0,
+          1000.926,
+          138.889
+        ]
+      }
+    }
+  },
+  "e870aa123e8c3e13bd40f0e7b865e7201574d26c9a9808bd5c94e03ffe42e6e1": {
+    "provider": "Qwen3-VL-LoRA",
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "adapter": "F:\\multi-res\\theme-layout-dataset\\runs\\local-qlora-v1\\adapter",
+    "modelEvidence": true,
+    "rawText": "{\"schema\":\"multires-layout/1\",\"groups\":{\"g0\":[29.167,431.019,78.704,277.778],\"g1\":[80.918,212.341,870.674,763.817],\"g2\":[249.074,75.231,502.315,95.37],\"g3\":[0.0,0.0,1000.926,138.889]}}",
+    "seconds": 18.375,
+    "inputImages": "source",
+    "configuration": {
+      "maxPixels": 100352,
+      "maxLength": 4096,
+      "maxNewTokens": 1024,
+      "precision": "auto",
+      "quantized": true,
+      "doSample": false
+    },
+    "status": "valid",
+    "answer": {
+      "schema": "multires-layout/1",
+      "groups": {
+        "g0": [
+          29.167,
+          431.019,
+          78.704,
+          277.778
+        ],
+        "g1": [
+          80.918,
+          212.341,
+          870.674,
+          763.817
+        ],
+        "g2": [
+          249.074,
+          75.231,
+          502.315,
+          95.37
+        ],
+        "g3": [
+          0.0,
+          0.0,
+          1000.926,
+          138.889
+        ]
+      }
+    }
+  }
+}

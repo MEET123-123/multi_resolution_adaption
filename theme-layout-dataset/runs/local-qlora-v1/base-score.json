@@ -1,0 +1,50 @@
+{
+  "samples": 6,
+  "valid": 6,
+  "validRate": 1.0,
+  "teacherMAE1000": 97.2589375,
+  "cases": [
+    {
+      "id": "d39ef6b9e7dfabf92d716b4d",
+      "family": "family-0d8cb1e70cfb",
+      "device": "dual-fold-mock-inner-portrait",
+      "valid": true,
+      "mae1000": 100.06512500000001
+    },
+    {
+      "id": "13b4281ded5b91f2f8a20730",
+      "family": "family-0d8cb1e70cfb",
+      "device": "tablet-mock-16-10-landscape",
+      "valid": true,
+      "mae1000": 164.94637500000002
+    },
+    {
+      "id": "394976e6c2bcdbbce8e20277",
+      "family": "family-0d8cb1e70cfb",
+      "device": "tablet-mock-16-10-portrait",
+      "valid": true,
+      "mae1000": 51.043312500000006
+    },
+    {
+      "id": "89f1fde9cb88f4f29a8de85c",
+      "family": "family-943f761ecab5",
+      "device": "dual-fold-mock-inner-portrait",
+      "valid": true,
+      "mae1000": 81.3920625
+    },
+    {
+      "id": "3b1627a1a94ebafb36c81439",
+      "family": "family-943f761ecab5",
+      "device": "tablet-mock-16-10-landscape",
+      "valid": true,
+      "mae1000": 151.180625
+    },
+    {
+      "id": "79216f5d9567743869a8425a",
+      "family": "family-943f761ecab5",
+      "device": "tablet-mock-16-10-portrait",
+      "valid": true,
+      "mae1000": 34.926125
+    }
+  ]
+}
