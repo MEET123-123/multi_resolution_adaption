@@ -1,0 +1,29 @@
+[
+  {
+    "epoch": 1,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 36.858858015046295,
+    "learnableGroupMAE1000": 45.9716875,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 2,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 36.882696296296295,
+    "learnableGroupMAE1000": 46.08713888888889,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 3,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 36.75863200231482,
+    "learnableGroupMAE1000": 45.85972569444445,
+    "groups": 168,
+    "fallbackGroups": 96
+  }
+]

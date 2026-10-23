@@ -1,0 +1,11 @@
+{
+  "archive": "F:\\multi-res\\theme-layout-dataset\\runs\\numeric-qlora-v2\\numeric-layout-v2.zip",
+  "sha256": "0e8cf569dd68c26f39a613220c7657156e5b7a6c04d307da853475555e3e6b69",
+  "bytes": 17053705,
+  "files": 208,
+  "verified": true,
+  "baseWeightsIncluded": false,
+  "sourceThemesIncluded": false,
+  "dataRequirement": "unchanged auto-pairs-v1 server-bundle; source caches required only for execution replay",
+  "contract": "multires-numeric-head/1"
+}

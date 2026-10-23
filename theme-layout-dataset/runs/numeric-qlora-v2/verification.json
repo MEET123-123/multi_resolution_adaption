@@ -1,0 +1,34 @@
+{
+  "status": "pass",
+  "annotationAndRegressionTests": 14,
+  "existingLearningContractTests": 4,
+  "skippedTests": 0,
+  "pythonCompile": "pass",
+  "gitDiffWhitespace": "pass",
+  "geometryHeadReloadMAE1000": 36.986385300925924,
+  "geometryHeadRecordedMAE1000": 36.986385300925924,
+  "selectedHeadReloadMaximumCoordinateDifference1000": 0,
+  "sourceIntegrityFiles": 701,
+  "validationExecution": {
+    "status": "pass",
+    "samples": 24,
+    "checks": {
+      "pass": 423
+    },
+    "events": {
+      "proposed": 24
+    }
+  },
+  "testExecution": {
+    "status": "pass",
+    "samples": 55,
+    "checks": {
+      "pass": 1043
+    },
+    "events": {
+      "proposed": 48,
+      "fallback-missing": 7
+    }
+  },
+  "nativeAcceptance": "not_measured"
+}

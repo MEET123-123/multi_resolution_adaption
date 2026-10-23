@@ -1,0 +1,12 @@
+{
+  "bundle": "theme-layout-dataset\\runs\\auto-pairs-v1\\server-bundle",
+  "model": "artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+  "run": "theme-layout-dataset\\runs\\numeric-qlora-v2",
+  "epochs": 3,
+  "seed": 23,
+  "accumulation": 4,
+  "max_pixels": 100352,
+  "max_length": 4096,
+  "scriptSha256": "64b7de1115cc169ff07e33cbdb4e8a30ded598e65660df9bb2c830293a839240",
+  "decoderSha256": "13461926487780d75e95cb16e5188082f05550e41ad2287071ed3f5df1ca60d4"
+}

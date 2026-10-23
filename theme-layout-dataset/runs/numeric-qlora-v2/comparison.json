@@ -1,0 +1,68 @@
+{
+  "fullTest": {
+    "copy_source": {
+      "samples": 55,
+      "valid": 55,
+      "teacherMAE1000": 97.76274230699855,
+      "learnableGroupMAE1000": 93.10258043478261,
+      "groups": 454,
+      "fallbackGroups": 224
+    },
+    "contain_anchor": {
+      "samples": 55,
+      "valid": 55,
+      "teacherMAE1000": 53.10752310696248,
+      "learnableGroupMAE1000": 58.921002173913045,
+      "groups": 454,
+      "fallbackGroups": 224
+    },
+    "geometry_head": {
+      "samples": 55,
+      "valid": 55,
+      "teacherMAE1000": 46.92842509387708,
+      "learnableGroupMAE1000": 51.26313913043479,
+      "groups": 454,
+      "fallbackGroups": 224
+    },
+    "selected_multimodal": {
+      "samples": 55,
+      "valid": 55,
+      "teacherMAE1000": 46.36372841958547,
+      "learnableGroupMAE1000": 50.42264782608696,
+      "groups": 454,
+      "fallbackGroups": 224
+    }
+  },
+  "originalFixedSix": {
+    "copy_source": {
+      "samples": 6,
+      "teacherMAE1000": 97.2589375
+    },
+    "contain_anchor": {
+      "samples": 6,
+      "teacherMAE1000": 49.95696875000001
+    },
+    "geometry_head": {
+      "samples": 6,
+      "teacherMAE1000": 34.02591666666667
+    },
+    "selected_multimodal": {
+      "samples": 6,
+      "teacherMAE1000": 33.11535416666667
+    }
+  },
+  "selection": {
+    "selected": "multimodal",
+    "epoch": 3,
+    "selectionSplit": "validation",
+    "testUsedForSelection": false,
+    "contract": "multires-numeric-head/1",
+    "hiddenSize": 2048,
+    "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+    "maxPixels": 100352,
+    "maxLength": 4096,
+    "featureCount": 33,
+    "sourceBundleSha256": "7fcc53524b1efe95082c23846bb86c65ef5510c7f506000084a26082137e2309"
+  },
+  "warning": "weak teacher agreement; no human visual/native acceptance; numeric-head weights require this decoder, not chat generation"
+}

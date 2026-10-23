@@ -1,0 +1,29 @@
+{
+  "status": "pass",
+  "split": "validation",
+  "inputPredictionSha256": "e703fe605b6031bce68a70f3eebf4c72ab2064fb4f132c70297c00e15af53587",
+  "gateUsesTeacherCoordinates": false,
+  "history": [
+    {
+      "attempt": 1,
+      "proposalCount": 24,
+      "badScenes": 0,
+      "events": {
+        "proposed": 24
+      }
+    }
+  ],
+  "rejectedRequests": {},
+  "finalRollout": "F:\\multi-res\\theme-layout-dataset\\runs\\numeric-qlora-v2\\guarded-validation\\pass-1",
+  "checks": {
+    "pass": 423
+  },
+  "events": {
+    "proposed": 24
+  },
+  "samples": 24,
+  "renders": {
+    "simulated": 24
+  },
+  "nativeValidation": "not_measured"
+}

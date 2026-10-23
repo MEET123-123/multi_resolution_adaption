@@ -1,0 +1,165 @@
+{
+  "samples": 55,
+  "matched": 55,
+  "exactRequestMatches": 54,
+  "checks": {
+    "pass": 1043,
+    "review": 6
+  },
+  "renderStatuses": {
+    "simulated": 55
+  },
+  "meanTeacherMAE1000AfterSolver": 23.216483787714807,
+  "nativeValidation": "not_measured",
+  "cases": [
+    {
+      "id": "2480bf2cfca53a92bbe661a6",
+      "state": "state-076",
+      "device": "tablet-mock-16-10-portrait",
+      "expectedRequestKey": "2c6eae282a013094fdbd49eb3c134ef72977b810de0d24c0ecee5c5deb99effd",
+      "actualRequestKey": "d4123b90ce86c8fd6766936184fa9d89c13fb8642bc849035af847ce977ea891",
+      "requestMatched": false,
+      "proposalStatus": "fallback-missing",
+      "mae1000AfterSolver": 12.173444444444439,
+      "failedChecks": []
+    },
+    {
+      "id": "896732f7a915168f9f9ff85f",
+      "state": "state-061",
+      "device": "tablet-mock-16-10-landscape",
+      "expectedRequestKey": "57e494c7a6973e873ed2033635144b8330d42ec76eef0bda15af960878f91c68",
+      "actualRequestKey": "57e494c7a6973e873ed2033635144b8330d42ec76eef0bda15af960878f91c68",
+      "requestMatched": true,
+      "proposalStatus": "proposed",
+      "mae1000AfterSolver": 27.6932,
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[11]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.0833033079025409,
+          "state": "state-061"
+        }
+      ]
+    },
+    {
+      "id": "e273b9ad7b3688f5d6b61dd3",
+      "state": "state-062",
+      "device": "tablet-mock-16-10-landscape",
+      "expectedRequestKey": "8a0044757901e5ad8db1c8798c54263d840c150265fafb638849eb3e89b95e66",
+      "actualRequestKey": "8a0044757901e5ad8db1c8798c54263d840c150265fafb638849eb3e89b95e66",
+      "requestMatched": true,
+      "proposalStatus": "proposed",
+      "mae1000AfterSolver": 26.835421875,
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[11]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.0833033079025409,
+          "state": "state-062"
+        }
+      ]
+    },
+    {
+      "id": "0341178aeb98929dc73fae8a",
+      "state": "state-063",
+      "device": "tablet-mock-16-10-landscape",
+      "expectedRequestKey": "0b90076bfd156911b00f53bf3824de230a7058f81b81d5de41534d45d826ffa2",
+      "actualRequestKey": "0b90076bfd156911b00f53bf3824de230a7058f81b81d5de41534d45d826ffa2",
+      "requestMatched": true,
+      "proposalStatus": "proposed",
+      "mae1000AfterSolver": 25.85,
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[11]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.0833033079025409,
+          "state": "state-063"
+        }
+      ]
+    },
+    {
+      "id": "045279f7b925a63649e9df98",
+      "state": "state-061",
+      "device": "dual-fold-mock-inner-portrait",
+      "expectedRequestKey": "ae842ebf4b9d4c0144a7b05ae51b88060734e5f4f43c6fa78768548dc73deef2",
+      "actualRequestKey": "ae842ebf4b9d4c0144a7b05ae51b88060734e5f4f43c6fa78768548dc73deef2",
+      "requestMatched": true,
+      "proposalStatus": "proposed",
+      "mae1000AfterSolver": 22.734883333333332,
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[17]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.012446838032537443,
+          "state": "state-061"
+        }
+      ]
+    },
+    {
+      "id": "79cc0a4d2143db395b3f79cf",
+      "state": "state-062",
+      "device": "dual-fold-mock-inner-portrait",
+      "expectedRequestKey": "206520b82069e23707ee2a26fc6acf0e6117ba2b4dc5dc16faaacd2bdb06c576",
+      "actualRequestKey": "206520b82069e23707ee2a26fc6acf0e6117ba2b4dc5dc16faaacd2bdb06c576",
+      "requestMatched": true,
+      "proposalStatus": "proposed",
+      "mae1000AfterSolver": 23.288203125,
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[17]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.012446838032537443,
+          "state": "state-062"
+        }
+      ]
+    },
+    {
+      "id": "95c6d688815c849a465f8bc9",
+      "state": "state-063",
+      "device": "dual-fold-mock-inner-portrait",
+      "expectedRequestKey": "a1eaf404d809dd136a8048a1a61dda225f09f6a94ffea7101f6753802430c4b3",
+      "actualRequestKey": "a1eaf404d809dd136a8048a1a61dda225f09f6a94ffea7101f6753802430c4b3",
+      "requestMatched": true,
+      "proposalStatus": "proposed",
+      "mae1000AfterSolver": 21.156299999999998,
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[17]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.012446838032537443,
+          "state": "state-063"
+        }
+      ]
+    }
+  ]
+}

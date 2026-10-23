@@ -1,0 +1,137 @@
+{
+  "status": "pass",
+  "split": "test",
+  "inputPredictionSha256": "7150552e471ad29e054b7fdd72bf8bb119941af63ebf635715ecd544def0d9bc",
+  "gateUsesTeacherCoordinates": false,
+  "history": [
+    {
+      "attempt": 1,
+      "proposalCount": 55,
+      "badScenes": 6,
+      "events": {
+        "proposed": 54,
+        "fallback-missing": 1
+      }
+    },
+    {
+      "attempt": 2,
+      "proposalCount": 49,
+      "badScenes": 0,
+      "events": {
+        "proposed": 48,
+        "fallback-missing": 7
+      }
+    }
+  ],
+  "rejectedRequests": {
+    "57e494c7a6973e873ed2033635144b8330d42ec76eef0bda15af960878f91c68": {
+      "id": "896732f7a915168f9f9ff85f",
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[11]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.08330330790254058,
+          "state": "state-061"
+        }
+      ]
+    },
+    "8a0044757901e5ad8db1c8798c54263d840c150265fafb638849eb3e89b95e66": {
+      "id": "e273b9ad7b3688f5d6b61dd3",
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[11]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.08330330790254058,
+          "state": "state-062"
+        }
+      ]
+    },
+    "0b90076bfd156911b00f53bf3824de230a7058f81b81d5de41534d45d826ffa2": {
+      "id": "0341178aeb98929dc73fae8a",
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[11]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.08330330790254058,
+          "state": "state-063"
+        }
+      ]
+    },
+    "ae842ebf4b9d4c0144a7b05ae51b88060734e5f4f43c6fa78768548dc73deef2": {
+      "id": "045279f7b925a63649e9df98",
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[17]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.01244683803253745,
+          "state": "state-061"
+        }
+      ]
+    },
+    "206520b82069e23707ee2a26fc6acf0e6117ba2b4dc5dc16faaacd2bdb06c576": {
+      "id": "79cc0a4d2143db395b3f79cf",
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[17]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.01244683803253745,
+          "state": "state-062"
+        }
+      ]
+    },
+    "a1eaf404d809dd136a8048a1a61dda225f09f6a94ffea7101f6753802430c4b3": {
+      "id": "95c6d688815c849a465f8bc9",
+      "failedChecks": [
+        {
+          "rule": "GEO.NEW_OVERLAP",
+          "status": "review",
+          "severity": "P1",
+          "members": [
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[17]",
+            "unlock/lockscreen/manifest.xml::/Lockscreen[1]/Group[1]/Image[2]"
+          ],
+          "residual": 0.01244683803253745,
+          "state": "state-063"
+        }
+      ]
+    }
+  },
+  "finalRollout": "F:\\multi-res\\theme-layout-dataset\\runs\\numeric-qlora-v2\\guarded-test\\pass-2",
+  "checks": {
+    "pass": 1043
+  },
+  "events": {
+    "proposed": 48,
+    "fallback-missing": 7
+  },
+  "samples": 55,
+  "renders": {
+    "simulated": 55
+  },
+  "nativeValidation": "not_measured"
+}

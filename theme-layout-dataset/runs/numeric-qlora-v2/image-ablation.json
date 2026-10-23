@@ -1,0 +1,9 @@
+{
+  "split": "validation",
+  "samples": 24,
+  "normalMAE1000": 36.75863200231482,
+  "blankImageMAE1000": 36.71512653356481,
+  "meanCoordinateChange1000": 0.2770654761904762,
+  "maxCoordinateChange1000": 6.385000000000048,
+  "selectionChanged": false
+}

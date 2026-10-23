@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "scope": "extracted archive, self-contained runtime code, geometry head, all 24 validation requests",
+  "predictionsEqual": true,
+  "archiveSha256": "0e8cf569dd68c26f39a613220c7657156e5b7a6c04d307da853475555e3e6b69"
+}

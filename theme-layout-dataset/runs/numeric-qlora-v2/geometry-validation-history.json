@@ -1,0 +1,191 @@
+[
+  {
+    "epoch": 0,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 45.37424157986111,
+    "learnableGroupMAE1000": 63.27752777777778,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 10,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.97387896412037,
+    "learnableGroupMAE1000": 52.54417013888889,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 20,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 37.12658234953704,
+    "learnableGroupMAE1000": 46.305871527777775,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 30,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 37.58296351273148,
+    "learnableGroupMAE1000": 47.58926041666667,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 40,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 37.250584403935186,
+    "learnableGroupMAE1000": 46.8147048611111,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 50,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 36.986385300925924,
+    "learnableGroupMAE1000": 46.16830208333333,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 60,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 37.80973339120371,
+    "learnableGroupMAE1000": 48.00557986111111,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 70,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 37.34386820023148,
+    "learnableGroupMAE1000": 47.06803472222222,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 80,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.13217063078704,
+    "learnableGroupMAE1000": 51.168972222222216,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 90,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 38.197274971064815,
+    "learnableGroupMAE1000": 48.854875,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 100,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 38.61769013310185,
+    "learnableGroupMAE1000": 49.661055555555556,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 110,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 38.84283405671297,
+    "learnableGroupMAE1000": 50.61421527777778,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 120,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 38.88886863425926,
+    "learnableGroupMAE1000": 50.77998958333333,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 130,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.148822019675926,
+    "learnableGroupMAE1000": 50.855895833333335,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 140,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 38.62744991319445,
+    "learnableGroupMAE1000": 50.18568055555556,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 150,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.218937528935186,
+    "learnableGroupMAE1000": 51.125204861111115,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 160,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.37581921296296,
+    "learnableGroupMAE1000": 51.27523263888889,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 170,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.63202323495371,
+    "learnableGroupMAE1000": 52.17670138888889,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 180,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.45980885416667,
+    "learnableGroupMAE1000": 51.49270833333333,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 190,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.482637384259256,
+    "learnableGroupMAE1000": 51.64036458333333,
+    "groups": 168,
+    "fallbackGroups": 96
+  },
+  {
+    "epoch": 200,
+    "samples": 24,
+    "valid": 24,
+    "teacherMAE1000": 39.627719212962965,
+    "learnableGroupMAE1000": 52.14332638888889,
+    "groups": 168,
+    "fallbackGroups": 96
+  }
+]

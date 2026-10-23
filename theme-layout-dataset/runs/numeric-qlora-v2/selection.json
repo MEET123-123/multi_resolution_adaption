@@ -1,0 +1,13 @@
+{
+  "selected": "multimodal",
+  "epoch": 3,
+  "selectionSplit": "validation",
+  "testUsedForSelection": false,
+  "contract": "multires-numeric-head/1",
+  "hiddenSize": 2048,
+  "model": "F:\\multi-res\\artifacts\\models\\Qwen3-VL-2B-Instruct-sharded",
+  "maxPixels": 100352,
+  "maxLength": 4096,
+  "featureCount": 33,
+  "sourceBundleSha256": "7fcc53524b1efe95082c23846bb86c65ef5510c7f506000084a26082137e2309"
+}

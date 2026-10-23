@@ -1,0 +1,19 @@
+{
+  "status": "complete",
+  "contract": "multires-numeric-head/1",
+  "examplesSeen": 348,
+  "eligibleScenesPerEpoch": 116,
+  "epochs": 3,
+  "changedAdapterTensors": 224,
+  "peakAllocatedGiB": 2.7717862129211426,
+  "seconds": 304.7030000000086,
+  "selectedEpoch": 3,
+  "selectionMetric": "all 24 validation scenes teacher MAE/1000 including source-only fallbacks",
+  "geometryBaselineMAE1000": 36.986385300925924,
+  "selectedValidationMAE1000": 36.75863200231482,
+  "visionEncoderFrozen": true,
+  "loss": "smooth L1 on decoded xywh; beta .02",
+  "adapterLearningRate": 2e-05,
+  "headLearningRate": 0.0002,
+  "weakTeacher": true
+}

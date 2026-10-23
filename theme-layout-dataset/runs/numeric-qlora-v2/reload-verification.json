@@ -1,0 +1,16 @@
+{
+  "validation": {
+    "reloadedMAE1000": 36.75863200231482,
+    "recordedMAE1000": 36.75863200231482,
+    "maxCoordinateDifference1000": 0.0,
+    "samples": 24,
+    "valid": 24
+  },
+  "test": {
+    "reloadedMAE1000": 46.36372841958547,
+    "recordedMAE1000": 46.36372841958547,
+    "maxCoordinateDifference1000": 0.0,
+    "samples": 55,
+    "valid": 55
+  }
+}

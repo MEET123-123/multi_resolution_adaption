@@ -1,0 +1,38 @@
+{
+  "sourceBundle": "F:\\multi-res\\theme-layout-dataset\\runs\\auto-pairs-v1\\server-bundle",
+  "sourceSha256": "7fcc53524b1efe95082c23846bb86c65ef5510c7f506000084a26082137e2309",
+  "familySplits": {
+    "family-943f761ecab5": "test",
+    "family-0d8cb1e70cfb": "test",
+    "family-24065b7fb216": "validation",
+    "family-65ca2a7c0bd3": "validation",
+    "family-3b453bafb6f3": "train",
+    "family-598a4b8c382c": "train",
+    "family-05600e51eeff": "train",
+    "family-81b610b2cd90": "train",
+    "family-70581e82b0b6": "train",
+    "family-98f00349e8b1": "train",
+    "family-0d96982df3b4": "train",
+    "family-373f8c002142": "train",
+    "family-fe23b4a8660d": "train"
+  },
+  "samples": 219,
+  "counts": {
+    "train": 140,
+    "validation": 24,
+    "test": 55
+  },
+  "excludedGroups": {
+    "train:fixed_author_layout": 499,
+    "teacher_nonuniform_scale": 30,
+    "train:backdrop_geometry": 3,
+    "validation:fixed_author_layout": 96,
+    "test:mixed_backdrop_controls": 12,
+    "test:backdrop_geometry": 16,
+    "test:fixed_author_layout": 196
+  },
+  "sourceOnlyQuarantine": true,
+  "trainingOnlyAspectFilter": 0.02,
+  "policy": "quarantined groups use source-only contain/anchor geometry; never invent split-group target labels",
+  "supervision": "existing weak algorithmic teacher; no human review or new native ground truth"
+}
