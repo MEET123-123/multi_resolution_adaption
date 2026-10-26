@@ -2,7 +2,16 @@
 
 读取主题脚本，理解交互状态与组件关系，为直板机、平板、折叠屏等设备计算布局，并生成对比预览、XML 和 HWT 候选包。
 
-**先看 [项目结构与模块说明](docs/PROJECT_STRUCTURE.md)，再看 [快速使用](docs/QUICKSTART.md)。**
+**第一次了解项目先看 [架构导航](docs/architecture/README.md)；运行请看 [快速使用](docs/QUICKSTART.md)，详细模块参阅 [项目结构](docs/PROJECT_STRUCTURE.md)。**
+
+## 先区分两个开发入口
+
+| 工作 | 从这里开始 |
+|---|---|
+| 从设计制作新锁屏，自动推断多设备布局并导出脚本 | [Theme Studio v2](theme_studio_v2/README.md)，`cd theme_studio_v2; npm run dev` |
+| 适配已有 HWT，保留真实脚本、交互和动画 | [Python 引擎阅读导航](src/multires_app/README.md)，`multires.py scenes / relayout / export / live` |
+
+旧 `theme_studio/` 是本地安装程序；`studio_reverse/` 是研究工具。主代码按职责阅读，不需要先遍历素材、模型和实验产物。此次源码拆分与阅读路径见 [重构说明](docs/architecture/REFACTORING.md)。
 
 ## 目录怎么找
 
@@ -67,6 +76,17 @@ multi-res/
 | 用 mock 验证 Qwen3-VL 布局微调与批量标注 | [模型 MVP](docs/guides/QWEN_LAYOUT_MVP.md)、`multires.py tools layout-lab` |
 | 看在线服务及当前限制 | [服务说明](docs/guides/SAAS_READINESS.md) |
 | 找目录整理前的文件 | [目录整理与迁移记录说明](docs/ORGANIZATION.md) |
+
+## 浏览器自动化操作台
+
+浏览器工作流研究独立目录：`studio_reverse/browser_automation/`。
+安装 Playwright 后运行：
+
+```powershell
+.\.venv\Scripts\python.exe .\studio_reverse\browser_automation\server.py --port 8797
+```
+
+浏览器打开 http://127.0.0.1:8797/ ，支持 Edge/Chrome、手动登录、按元素点击、输入、截图和脱敏请求摘要。使用前请阅读该目录的 README。
 
 ## 当前能力边界
 

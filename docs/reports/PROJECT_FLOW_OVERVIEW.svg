@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" role="img" aria-labelledby="flowTitle flowDesc">
+  <title id="flowTitle">锁屏主题多分辨率适配 · 整体流程</title>
+  <desc id="flowDesc">存量主题包经过读懂交互、自动布局、质检评分，最终交付预览与可安装主题包；质检发现的问题案例反哺自动布局规则。</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowBack" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+    </marker>
+    <filter id="soft" x="-8%" y="-8%" width="116%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.07"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="720" fill="#ffffff"/>
+
+  <text x="80" y="86" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="30" font-weight="700" fill="#0f172a">锁屏主题多分辨率适配 · 整体流程</text>
+  <text x="80" y="122" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="16" fill="#64748b">前四步全自动，不需要人工改脚本</text>
+
+  <!-- 1 -->
+  <g filter="url(#soft)">
+    <rect x="64" y="228" width="190" height="124" rx="14" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  </g>
+  <circle cx="88" cy="272" r="13" fill="#2563eb"/>
+  <text x="88" y="277" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <text x="110" y="278" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="18" font-weight="700" fill="#1e3a8a">存量主题包</text>
+  <text x="86" y="316" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="13" fill="#475569">手机锁屏 .hwt</text>
+
+  <!-- 2 -->
+  <g filter="url(#soft)">
+    <rect x="304" y="228" width="190" height="124" rx="14" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  </g>
+  <circle cx="328" cy="272" r="13" fill="#2563eb"/>
+  <text x="328" y="277" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <text x="350" y="278" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="18" font-weight="700" fill="#1e3a8a">读懂交互</text>
+  <text x="326" y="316" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="13" fill="#475569">自动识别滑动 / 点击</text>
+
+  <!-- 3 -->
+  <g filter="url(#soft)">
+    <rect x="544" y="228" width="190" height="124" rx="14" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  </g>
+  <circle cx="568" cy="272" r="13" fill="#2563eb"/>
+  <text x="568" y="277" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#ffffff">3</text>
+  <text x="590" y="278" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="18" font-weight="700" fill="#1e3a8a">自动布局</text>
+  <text x="566" y="316" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="13" fill="#475569">平板 · 折叠屏 · 横屏</text>
+
+  <!-- 4 -->
+  <g filter="url(#soft)">
+    <rect x="784" y="228" width="190" height="124" rx="14" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  </g>
+  <circle cx="808" cy="272" r="13" fill="#2563eb"/>
+  <text x="808" y="277" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#ffffff">4</text>
+  <text x="830" y="278" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="18" font-weight="700" fill="#1e3a8a">质检评分</text>
+  <text x="806" y="316" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="13" fill="#475569">遮挡 / 超框自动检出</text>
+
+  <!-- 5 -->
+  <g filter="url(#soft)">
+    <rect x="1024" y="228" width="190" height="124" rx="14" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1.5"/>
+  </g>
+  <circle cx="1048" cy="272" r="13" fill="#059669"/>
+  <text x="1048" y="277" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#ffffff">5</text>
+  <text x="1070" y="278" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="18" font-weight="700" fill="#065f46">交付</text>
+  <text x="1046" y="316" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="13" fill="#475569">预览 + 可安装包</text>
+
+  <!-- 主流程箭头 -->
+  <line x1="258" y1="290" x2="298" y2="290" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="498" y1="290" x2="538" y2="290" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="738" y1="290" x2="778" y2="290" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="978" y1="290" x2="1018" y2="290" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 反哺回路：质检评分 -> 自动布局 -->
+  <path d="M 879 356 L 879 442 L 639 442 L 639 360" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrowBack)"/>
+  <rect x="679" y="424" width="150" height="26" rx="6" fill="#ffffff"/>
+  <text x="754" y="443" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="14" fill="#b45309">问题案例反哺规则</text>
+
+  <!-- 底部价值陈述 -->
+  <text x="640" y="548" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif" font-size="17" fill="#334155">从「人工逐个改脚本」到「自动适配 + 自动质检」</text>
+  <line x1="470" y1="576" x2="810" y2="576" stroke="#e2e8f0" stroke-width="2"/>
+</svg>

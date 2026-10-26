@@ -1,0 +1,45 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>浏览器自动化工作台 · Theme Studio</title><style>
+*{box-sizing:border-box}body{margin:0;background:#eff3f8;color:#183047;font:14px/1.5 system-ui,"Microsoft YaHei",sans-serif}
+header{display:flex;gap:12px;align-items:center;padding:15px 22px;background:#fff;border-bottom:1px solid #dae3ed}
+h1{font-size:18px;margin:0} .hint{font-size:12px;color:#6a7e8e}
+main{max-width:1400px;margin:20px auto;padding:0 20px;display:grid;grid-template-columns:minmax(390px,1fr) minmax(390px,1.2fr);gap:18px}
+section{border:1px solid #dce5ed;border-radius:12px;background:white;padding:20px;box-shadow:0 6px 18px #14263808}h2{font-size:15px;margin:0 0 14px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}label{display:flex;flex-direction:column;gap:5px;color:#637589;font-size:12px;margin-bottom:10px}
+input,select,textarea{padding:9px;border:1px solid #cdd9e4;border-radius:8px;color:#253c52;background:#fff;font:inherit}
+input.full,textarea{width:100%}select{max-width:180px}
+button{padding:8px 13px;border-radius:8px;border:1px solid #cbd6e1;background:white;color:#263d54;cursor:pointer}
+button.primary{background:#17619d;color:#fff;border-color:#17619d}button:hover{filter:brightness(.96)}
+.small{font-size:12px;color:#657b90}.info{background:#fff8e9;padding:12px;border-radius:8px;font-size:12px;color:#725617;margin-bottom:16px}
+#status{white-space:pre-wrap;overflow-wrap:anywhere;padding:10px 12px;background:#edf4f9;border-radius:8px;font-size:12px;min-height:40px;margin:10px 0}
+#log{min-height:250px;max-height:430px;overflow:auto;white-space:pre-wrap;background:#162537;color:#dce9f5;border-radius:8px;padding:15px;font:12px/1.55 ui-monospace,Consolas,monospace}
+#shot{width:100%;max-height:600px;object-fit:contain;margin-top:14px;border-radius:8px}
+textarea{min-height:170px;font:12px/1.5 Consolas,monospace}hr{border:0;border-top:1px solid #e3e9ef;margin:18px 0}
+@media(max-width:850px){main{grid-template-columns:1fr}}
+</style></head><body><header><h1>浏览器自动化工作台</h1><span class="hint">独立本地模块 · Playwright · 适用于动态锁屏编辑器页面研究</span></header>
+<main><section><h2>1. 连接浏览器</h2>
+<label>目标网址<input class="full" id="url" value="https://themestudio.cloud.huawei.com.cn/#/project/2067756803810222336"></label>
+<div class="row"><select id="channel"><option value="msedge">Microsoft Edge</option><option value="chrome">Google Chrome</option><option value="chromium">Playwright Chromium</option></select>
+<button class="primary" id="launch">启动浏览器</button><button id="navigate">访问网址</button><button id="statusBtn">刷新状态</button></div>
+<div class="info">在启动的独立浏览器里自行登录华为账号，然后回到这里操作。不会读取现有 Chrome/Edge 的 Cookie，也不要把账号密码写入脚本。</div>
+<div id="status">等待浏览器启动</div><hr>
+<h2>2. 点击、填写和检查页面</h2>
+<div class="row"><select id="by"><option value="role">角色 + 名称</option><option value="text">文本</option><option value="label">字段标签</option><option value="placeholder">输入框提示</option><option value="css">CSS 选择器</option></select>
+<select id="role"><option>button</option><option>link</option><option>tab</option><option>textbox</option><option>combobox</option><option>menuitem</option></select>
+<input id="nth" type="number" min="0" max="30" value="0" style="width:60px" title="匹配序号"></div>
+<label>元素名称、文字或 CSS 选择器<input class="full" id="query" placeholder="例如：新建作品 / 动态锁屏 / #preview"></label>
+<label>输入内容 / 下拉选项的值<input class="full" id="value" placeholder="填写内容"></label>
+<div class="row"><button id="click" class="primary">点击</button><button id="fill">输入</button><button id="select">选择</button><button id="scroll">滚动</button><button id="inspect">查看元素</button></div><hr>
+<h2>3. 多步骤自动化</h2><p class="small">以下仅为示例，按钮名称必须根据实际网页核对；失败时自动停止。</p>
+<textarea id="steps">[
+  {"action":"click","by":"role","role":"button","query":"新建作品"},
+  {"action":"wait","seconds":1},
+  {"action":"inspect"},
+  {"action":"screenshot"}
+]</textarea>
+<div class="row"><button id="playbook" class="primary">执行步骤</button><button id="stop">关闭浏览器</button></div>
+</section><section><h2>4. 观察与截图</h2>
+<div class="row"><button id="screenshot">当前网页截图</button><button id="network">查看网络事件</button><button id="export">导出脱敏记录</button></div>
+<p class="small">只记录请求方法、资源类型、去掉查询参数后的 URL 和响应状态；不记录请求正文、密码和认证请求头。截图可能包含私人作品。</p>
+<pre id="log">等待操作…</pre><img id="shot" alt="页面截图" hidden></section></main>
+<script>const CONTROL_TOKEN = "__LOCAL_TOKEN__";</script><script src="/controller.js"></script></body></html>

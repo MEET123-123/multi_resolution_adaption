@@ -18,8 +18,13 @@ from typing import Any, Protocol
 class LayoutAlgorithm(Protocol):
     name: str
 
-    def layout(self, elements: list[dict[str, Any]], source_profile: dict[str, Any],
-               target_profile: dict[str, Any], context: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    def layout(
+        self,
+        elements: list[dict[str, Any]],
+        source_profile: dict[str, Any],
+        target_profile: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
         """Return ``{element_key: {xml_attribute: value}}`` for adapted geometry."""
         ...
 
@@ -36,8 +41,13 @@ class NormalizedStretchDemo:
 
     name = "normalized-stretch-demo"
 
-    def layout(self, elements: list[dict[str, Any]], source_profile: dict[str, Any],
-               target_profile: dict[str, Any], context: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    def layout(
+        self,
+        elements: list[dict[str, Any]],
+        source_profile: dict[str, Any],
+        target_profile: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
         source = source_profile["resolutionPx"]
         target = target_profile["resolutionPx"]
         sx = target["width"] / source["width"]
@@ -63,8 +73,13 @@ class PreserveEngineLayout:
 
     name = "preserve-engine"
 
-    def layout(self, elements: list[dict[str, Any]], source_profile: dict[str, Any],
-               target_profile: dict[str, Any], context: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    def layout(
+        self,
+        elements: list[dict[str, Any]],
+        source_profile: dict[str, Any],
+        target_profile: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
         return {}
 
 
@@ -88,6 +103,7 @@ def load_algorithm(spec: str) -> LayoutAlgorithm:
         loader_spec.loader.exec_module(module)
     else:
         from multires_app.compat import resolve_module
+
         module = importlib.import_module(resolve_module(module_spec))
     cls = getattr(module, class_name, None)
     if cls is None:
@@ -98,8 +114,12 @@ def load_algorithm(spec: str) -> LayoutAlgorithm:
     return algorithm
 
 
-def make_layout_plan(analysis: dict[str, Any], source_profile: dict[str, Any],
-                     profiles: dict[str, Any], algorithm: LayoutAlgorithm) -> dict[str, Any]:
+def make_layout_plan(
+    analysis: dict[str, Any],
+    source_profile: dict[str, Any],
+    profiles: dict[str, Any],
+    algorithm: LayoutAlgorithm,
+) -> dict[str, Any]:
     elements = [element for file_doc in analysis["files"] for element in file_doc["elements"]]
     scenes = [scene for file_doc in analysis["files"] for scene in file_doc["scenes"]]
     devices = []
@@ -107,42 +127,75 @@ def make_layout_plan(analysis: dict[str, Any], source_profile: dict[str, Any],
         base_resolution = base_profile.get("resolutionPx")
         orientations = base_profile.get("orientations", ["portrait", "landscape"])
         base_orientation = base_profile.get("baseOrientation")
-        if not base_orientation and base_resolution and base_resolution.get("width") and base_resolution.get("height"):
-            base_orientation = "landscape" if base_resolution["width"] > base_resolution["height"] else "portrait"
+        if (
+            not base_orientation
+            and base_resolution
+            and base_resolution.get("width")
+            and base_resolution.get("height")
+        ):
+            base_orientation = (
+                "landscape" if base_resolution["width"] > base_resolution["height"] else "portrait"
+            )
         base_orientation = base_orientation or "portrait"
         for orientation in orientations:
             profile = copy.deepcopy(base_profile)
             profile["baseProfileId"] = base_profile.get("id")
             profile["id"] = f"{base_profile.get('id', 'profile')}-{orientation}"
             profile["orientation"] = orientation
-            if not base_resolution or not base_resolution.get("width") or not base_resolution.get("height"):
-                devices.append({"profile": profile, "status": "needs-measurement", "elements": [],
-                                "patches": [], "scenes": scenes,
-                                "warnings": ["目标分辨率未填写，跳过布局计算。"]})
+            if (
+                not base_resolution
+                or not base_resolution.get("width")
+                or not base_resolution.get("height")
+            ):
+                devices.append(
+                    {
+                        "profile": profile,
+                        "status": "needs-measurement",
+                        "elements": [],
+                        "patches": [],
+                        "scenes": scenes,
+                        "warnings": ["目标分辨率未填写，跳过布局计算。"],
+                    }
+                )
                 continue
             width, height = base_resolution["width"], base_resolution["height"]
             if orientation != base_orientation:
                 width, height = height, width
             profile["resolutionPx"] = {"width": width, "height": height}
             profile["baseResolutionPx"] = dict(base_resolution)
-            mapping = algorithm.layout(elements, source_profile, profile,
-                                       {"analysis": analysis, "scenes": scenes})
+            mapping = algorithm.layout(
+                elements, source_profile, profile, {"analysis": analysis, "scenes": scenes}
+            )
             if not isinstance(mapping, dict):
-                raise ValueError("布局算法 layout() 必须返回 {element_key: {attribute: value}} 字典")
+                raise ValueError(
+                    "布局算法 layout() 必须返回 {element_key: {attribute: value}} 字典"
+                )
             output_elements = []
             patches = []
             warnings = []
             for element in elements:
                 attrs = element.get("attributes", {})
                 rect = mapping.get(element["key"], {})
-                source_rect = {key: attrs[key] for key in ("x", "y", "w", "h", "width", "height") if key in attrs}
+                source_rect = {
+                    key: attrs[key]
+                    for key in ("x", "y", "w", "h", "width", "height")
+                    if key in attrs
+                }
                 if not rect and getattr(algorithm, "name", "") != "preserve-engine":
                     warnings.append(f"{element['key']}: 算法未返回几何数据，预览沿用原坐标/跳过。")
-                output_elements.append({"key": element["key"], "tag": element["tag"],
-                                        "file": element["file"], "path": element["path"],
-                                        "attributes": attrs, "sceneRefs": element.get("sceneRefs", []),
-                                        "layoutDecision": element.get("layoutDecision"),
-                                        "sourceRect": source_rect, "rect": rect})
+                output_elements.append(
+                    {
+                        "key": element["key"],
+                        "tag": element["tag"],
+                        "file": element["file"],
+                        "path": element["path"],
+                        "attributes": attrs,
+                        "sceneRefs": element.get("sceneRefs", []),
+                        "layoutDecision": element.get("layoutDecision"),
+                        "sourceRect": source_rect,
+                        "rect": rect,
+                    }
+                )
                 if rect:
                     selector: dict[str, str] = {"tag": element["tag"], "path": element["path"]}
                     for ident in ("id", "name"):
@@ -151,15 +204,30 @@ def make_layout_plan(analysis: dict[str, Any], source_profile: dict[str, Any],
                             selector[ident] = attrs[ident]
                             break
                     patches.append({"selector": selector, "set": rect})
-            devices.append({"profile": profile, "status": "ready", "elements": output_elements,
-                            "scenes": scenes,
-                            "patches": patches, "warnings": warnings})
-    result = {"formatVersion": 1, "analysisSource": analysis.get("source"),
-            "algorithm": getattr(algorithm, "name", algorithm.__class__.__name__),
-            "sourceProfile": source_profile, "devices": devices}
+            devices.append(
+                {
+                    "profile": profile,
+                    "status": "ready",
+                    "elements": output_elements,
+                    "scenes": scenes,
+                    "patches": patches,
+                    "warnings": warnings,
+                }
+            )
+    result = {
+        "formatVersion": 1,
+        "analysisSource": analysis.get("source"),
+        "algorithm": getattr(algorithm, "name", algorithm.__class__.__name__),
+        "sourceProfile": source_profile,
+        "devices": devices,
+    }
     if getattr(algorithm, "name", "") == "preserve-engine":
-        result["adaptationNote"] = "保留主题脚本原有坐标与引擎表达式；预览只做原始设计稿映射，不代表鸿蒙引擎实机效果。"
+        result["adaptationNote"] = (
+            "保留主题脚本原有坐标与引擎表达式；预览只做原始设计稿映射，不代表鸿蒙引擎实机效果。"
+        )
         for device in devices:
             if device["status"] == "ready":
-                device["warnings"].append("当前算法不改写 XML 坐标；需在目标设备上验证主题引擎的 screen_width/screen_height 表达式。")
+                device["warnings"].append(
+                    "当前算法不改写 XML 坐标；需在目标设备上验证主题引擎的 screen_width/screen_height 表达式。"
+                )
     return result

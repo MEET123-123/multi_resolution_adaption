@@ -10,26 +10,33 @@ from pathlib import Path
 from typing import Any
 
 
-def build_preview(layout_plan: dict[str, Any], out: Path,
-                 source_image: Path | None = None) -> None:
-    devices = [device for device in layout_plan.get("devices", []) if device.get("status") == "ready"]
+def build_preview(layout_plan: dict[str, Any], out: Path, source_image: Path | None = None) -> None:
+    devices = [
+        device for device in layout_plan.get("devices", []) if device.get("status") == "ready"
+    ]
     if not devices:
         raise ValueError("布局计划没有可预览的设备 profile")
-    payload = {"algorithm": layout_plan.get("algorithm"),
-               "sourceProfile": layout_plan.get("sourceProfile"),
-               "adaptationNote": layout_plan.get("adaptationNote"),
-               "devices": devices}
+    payload = {
+        "algorithm": layout_plan.get("algorithm"),
+        "sourceProfile": layout_plan.get("sourceProfile"),
+        "adaptationNote": layout_plan.get("adaptationNote"),
+        "devices": devices,
+    }
     if source_image and devices[0].get("elements"):
         # Every profile shares the same source metadata and scene graph. Keep
         # that once, and store only per-profile geometry so real-theme previews
         # stay small even when a theme has thousands of analyzed elements.
-        payload["elements"] = [{k: v for k, v in element.items() if k != "rect"}
-                               for element in devices[0]["elements"]]
+        payload["elements"] = [
+            {k: v for k, v in element.items() if k != "rect"} for element in devices[0]["elements"]
+        ]
         payload["scenes"] = devices[0].get("scenes", [])
         compact_devices = []
         for device in devices:
-            row = {"profile": device["profile"], "status": device["status"],
-                   "warnings": device.get("warnings", [])}
+            row = {
+                "profile": device["profile"],
+                "status": device["status"],
+                "warnings": device.get("warnings", []),
+            }
             if device.get("elements"):
                 row["rects"] = [element.get("rect", {}) for element in device["elements"]]
             compact_devices.append(row)
@@ -40,7 +47,7 @@ def build_preview(layout_plan: dict[str, Any], out: Path,
         payload["sourcePreviewData"] = f"data:{mime};base64,{encoded}"
     payload_text = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     title = html.escape("鸿蒙锁屏多设备布局预览")
-    document = f'''<!doctype html>
+    document = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title><style>
 :root{{color-scheme:dark;--bg:#101319;--panel:#191e27;--line:#303847;--muted:#9da9b9;--text:#f2f5fa;--accent:#8be0c2}}
@@ -79,6 +86,6 @@ function showScene(id){{activeScene=id;for(const el of scenesEl.children)el.clas
 function renderScenes(){{scenesEl.replaceChildren();for(const s of (current.scenes||DATA.scenes||[])){{const card=document.createElement('div');card.className='scene'+(s.id===activeScene?' active':'');card.dataset.id=s.id;const title=document.createElement('b');title.textContent=(s.layers||[s.layer]).join(' → ')+' · '+s.action;const meta=document.createElement('small');meta.textContent=s.owner+' → '+((s.commands||[]).map(c=>c.tag).join(', ')||'状态/静态');card.append(title,meta);card.onclick=()=>showScene(s.id);scenesEl.append(card)}}}}
 for(const [i,d] of DATA.devices.entries()){{const o=document.createElement('option');o.value=i;o.textContent=`${{d.profile.device}} · ${{d.profile.displayState}} · ${{d.profile.orientation}}`;deviceSelect.append(o)}}
 deviceSelect.onchange=()=>{{activeScene=null;draw()}};hitToggle.onchange=draw;nodeToggle.onchange=draw;fitSelect.onchange=draw;draw();
-</script></body></html>'''
+</script></body></html>"""
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(document, encoding="utf-8")

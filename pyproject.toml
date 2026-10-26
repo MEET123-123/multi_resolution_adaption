@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 dependencies = ["Pillow==12.3.0", "numpy==2.3.5", "kiwisolver==1.4.9"]
 
 [project.optional-dependencies]
+dev = ["black==25.1.0"]
 vision = ["opencv-python-headless==5.0.0.93"]
 service = ["uvicorn==0.54.0", "click==8.5.0", "h11==0.16.0"]
 
@@ -24,3 +25,8 @@ where = ["src"]
 "multires_app.preview" = ["*.js", "*.html"]
 "multires_app.service" = ["*.html"]
 "multires_app.learning" = ["*.html"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = '(^|/)multires\.py$|(^|/)src/multires_app/.*\.py$'

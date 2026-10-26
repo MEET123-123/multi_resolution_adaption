@@ -3,6 +3,7 @@
 The document is JSON data: checkpoints + reversible patches + a branch cursor.
 No commands or external effects are executed when a checkpoint is restored.
 """
+
 from __future__ import annotations
 
 import copy
@@ -18,20 +19,37 @@ def state_changes(before, after, path=()):
             if key in before and key in after:
                 result.extend(state_changes(before[key], after[key], (*path, key)))
             else:
-                result.append({"path": [*path, key],
-                               "before": {"exists": key in before, **({"value": copy.deepcopy(before[key])} if key in before else {})},
-                               "after": {"exists": key in after, **({"value": copy.deepcopy(after[key])} if key in after else {})}})
+                result.append(
+                    {
+                        "path": [*path, key],
+                        "before": {
+                            "exists": key in before,
+                            **({"value": copy.deepcopy(before[key])} if key in before else {}),
+                        },
+                        "after": {
+                            "exists": key in after,
+                            **({"value": copy.deepcopy(after[key])} if key in after else {}),
+                        },
+                    }
+                )
         return result
     if before == after and type(before) is type(after):
         return []
-    return [{"path": list(path), "before": {"exists": True, "value": copy.deepcopy(before)},
-             "after": {"exists": True, "value": copy.deepcopy(after)}}]
+    return [
+        {
+            "path": list(path),
+            "before": {"exists": True, "value": copy.deepcopy(before)},
+            "after": {"exists": True, "value": copy.deepcopy(after)},
+        }
+    ]
 
 
 def apply_changes(document, changes, reverse=False):
     result = copy.deepcopy(document)
     for change in reversed(changes) if reverse else changes:
-        expected, replacement = (change["after"], change["before"]) if reverse else (change["before"], change["after"])
+        expected, replacement = (
+            (change["after"], change["before"]) if reverse else (change["before"], change["after"])
+        )
         path = change["path"]
         if not path:
             actual = {"exists": True, "value": result}
@@ -58,13 +76,22 @@ def apply_changes(document, changes, reverse=False):
 
 class InteractionHistory:
     """Keep all concrete events even when their rendered layouts are identical."""
+
     def __init__(self, initial, *, metadata=None, checkpoint_every=16):
         if checkpoint_every < 1:
             raise ValueError("checkpoint_every must be positive")
         self.metadata = copy.deepcopy(metadata or {})
         self.checkpoint_every = checkpoint_every
         self.cursor = "event-000000"
-        self.records = [{"id": self.cursor, "parent": None, "depth": 0, "event": {"type": "initial"}, "changes": []}]
+        self.records = [
+            {
+                "id": self.cursor,
+                "parent": None,
+                "depth": 0,
+                "event": {"type": "initial"},
+                "changes": [],
+            }
+        ]
         self.checkpoints = {self.cursor: copy.deepcopy(initial)}
         self._index = {self.cursor: self.records[0]}
         self._current = copy.deepcopy(initial)
@@ -75,15 +102,20 @@ class InteractionHistory:
 
     @property
     def parent(self):
-        return self._index[self.cursor]['parent']
+        return self._index[self.cursor]["parent"]
 
     def commit(self, event, after, *, commands=(), effects=()):
         # Validate JSON before changing the cursor; no partial commit on failure.
         json.dumps([event, after, commands, effects], ensure_ascii=False, allow_nan=False)
-        node = {"id": f"event-{len(self.records):06d}", "parent": self.cursor,
-                "depth": self._index[self.cursor]["depth"] + 1,
-                "event": copy.deepcopy(event), "changes": state_changes(self._current, after),
-                "commands": copy.deepcopy(list(commands)), "effects": copy.deepcopy(list(effects))}
+        node = {
+            "id": f"event-{len(self.records):06d}",
+            "parent": self.cursor,
+            "depth": self._index[self.cursor]["depth"] + 1,
+            "event": copy.deepcopy(event),
+            "changes": state_changes(self._current, after),
+            "commands": copy.deepcopy(list(commands)),
+            "effects": copy.deepcopy(list(effects)),
+        }
         self.records.append(node)
         self._index[node["id"]] = node
         self.cursor = node["id"]
@@ -113,11 +145,23 @@ class InteractionHistory:
         return self.checkout(parent) if parent else self.current
 
     def children(self):
-        return [{"id": n["id"], "event": copy.deepcopy(n["event"])} for n in self.records if n["parent"] == self.cursor]
+        return [
+            {"id": n["id"], "event": copy.deepcopy(n["event"])}
+            for n in self.records
+            if n["parent"] == self.cursor
+        ]
 
     def to_dict(self):
-        return copy.deepcopy({"schemaVersion": 1, "metadata": self.metadata, "checkpointEvery": self.checkpoint_every,
-                              "cursor": self.cursor, "records": self.records, "checkpoints": self.checkpoints})
+        return copy.deepcopy(
+            {
+                "schemaVersion": 1,
+                "metadata": self.metadata,
+                "checkpointEvery": self.checkpoint_every,
+                "cursor": self.cursor,
+                "records": self.records,
+                "checkpoints": self.checkpoints,
+            }
+        )
 
     @classmethod
     def from_dict(cls, document):
@@ -127,7 +171,11 @@ class InteractionHistory:
         if not records or records[0].get("parent") is not None:
             raise ValueError("History needs one initial root")
         root = records[0]["id"]
-        history = cls(document["checkpoints"][root], metadata=document.get("metadata"), checkpoint_every=document["checkpointEvery"])
+        history = cls(
+            document["checkpoints"][root],
+            metadata=document.get("metadata"),
+            checkpoint_every=document["checkpointEvery"],
+        )
         history.records = copy.deepcopy(records)
         history._index = {}
         for i, node in enumerate(history.records):
@@ -149,16 +197,27 @@ class InteractionHistory:
 
 
 def runtime_state(runtime):
-    return copy.deepcopy({"variables": runtime.state, "inputs": runtime.system, "timeMs": runtime.time_ms,
-                          "effects": runtime.events, "diagnostics": runtime.issues})
+    return copy.deepcopy(
+        {
+            "variables": runtime.state,
+            "inputs": runtime.system,
+            "timeMs": runtime.time_ms,
+            "effects": runtime.events,
+            "diagnostics": runtime.issues,
+        }
+    )
 
 
 def needs_runtime_sync(recorded, current):
     # Rendering may add diagnostics between inputs; that is not a user event.
     # Keep those observations in the next snapshot, without an extra undo step.
     for change in state_changes(recorded, current):
-        path=change['path']
-        if len(path)>=2 and path[0] in {'runtime','target','source'} and path[1]=='diagnostics':
+        path = change["path"]
+        if (
+            len(path) >= 2
+            and path[0] in {"runtime", "target", "source"}
+            and path[1] == "diagnostics"
+        ):
             continue
         return True
     return False
@@ -175,5 +234,9 @@ def restore_runtime(runtime, state):
 
 
 def model_fingerprint(model):
-    data = json.dumps({k: model[k] for k in ("root", "nodes", "variables", "triggers")}, sort_keys=True, ensure_ascii=False)
+    data = json.dumps(
+        {k: model[k] for k in ("root", "nodes", "variables", "triggers")},
+        sort_keys=True,
+        ensure_ascii=False,
+    )
     return hashlib.sha256(data.encode("utf-8")).hexdigest()

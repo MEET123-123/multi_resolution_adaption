@@ -1,8 +1,10 @@
 # 文档导航
 
-初次阅读：[项目结构](PROJECT_STRUCTURE.md) → [快速使用](QUICKSTART.md) → [接入自己的算法](CUSTOM_LAYOUT.md)。
+初次阅读：[架构导航](architecture/README.md) → [项目结构](PROJECT_STRUCTURE.md) → [快速使用](QUICKSTART.md) → [接入自己的算法](CUSTOM_LAYOUT.md)。
 
 [目录整理说明](ORGANIZATION.md) 解释文件搬迁及旧路径查找。
+
+本次重构入口：[源码职责拆分](architecture/REFACTORING.md) · [Python 模块导航](../src/multires_app/README.md) · [Theme Studio v2](../theme_studio_v2/README.md) · [响应式布局架构](../theme_studio_v2/docs/RESPONSIVE_ARCHITECTURE.md)。
 
 ## 设计与使用
 

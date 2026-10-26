@@ -68,13 +68,15 @@ flowchart TD
 
 | 文件 | 作用 |
 |---|---|
-| `scene_pipeline.py` | 创建项目、推断组件、加载算法、重新布局、导出脚本和主题包 |
+| `scene_pipeline.py` | 保留原 API 的兼容转出层；新代码引用以下职责模块 |
+| `projects.py` | 创建项目、缓存重排与转换流程编排 |
+| `components.py` / `profiles.py` | 组件推断、源逻辑画布与目标设备方向 |
 | `scene_clusters.py` | 比较场景，选择复用、局部变化或整体重排，保存公共组件位置 |
 | `scene_analysis.py` | 汇总场景与交互分析材料 |
 | `source_comparison.py` | 获取未修改的原始主题画面，作为适配参照 |
 | `layout_storage.py` | 压缩重复布局证据，保存运行所需数据 |
 
-建议从 `scene_pipeline.py` 的 `create_project()` 开始阅读整个项目。
+建议从 `projects.py` 的 `create_project()` 开始阅读。插件协议在 `layout/scene_api.py`，状态条件在 `export/state_guards.py`，XML/HWT 编译在 `export/scene_export.py`。
 
 ### 4. `layout/`：决定组件摆在哪里
 

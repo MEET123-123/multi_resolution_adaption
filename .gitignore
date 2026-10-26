@@ -54,3 +54,20 @@ tests/tmp*/
 # WorkBuddy workspace data.
 /.workbuddy/
 /.workbuddy-ai/
+
+# The legacy desktop application's installed binaries stay local.
+/theme_studio/
+
+# Theme Studio v2 sources are versioned; dependencies and generated files are local.
+/theme_studio_v2/node_modules/
+/theme_studio_v2/dist/
+/theme_studio_v2/out/
+/theme_studio_v2/.tmp/
+/theme_studio_v2/shot*.png
+
+# Collected previews, media, inspection downloads and bundled Python libraries stay local.
+# Keep the dataset collection and maintenance tools under version control.
+/datasets/*
+!/datasets/tools/
+/datasets/tools/*
+!/datasets/tools/*.py
