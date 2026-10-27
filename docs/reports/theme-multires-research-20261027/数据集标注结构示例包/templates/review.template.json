@@ -1,0 +1,96 @@
+{
+  "schema": "multires-layout/1",
+  "reviewer": "DEMO_TEMPLATE_REPLACE_WITH_REAL_REVIEWER",
+  "reviews": [
+    {
+      "id": "demo_s001",
+      "requestKey": "554588f8cc6adde15090886175371af3c7994bb30e860b7d93d14f49f91dcf73",
+      "baseRevision": 0,
+      "status": "approved",
+      "answer": {
+        "schema": "multires-layout/1",
+        "groups": {
+          "g0": [
+            100,
+            100,
+            400,
+            150
+          ],
+          "g1": [
+            600,
+            100,
+            300,
+            650
+          ],
+          "g2": [
+            100,
+            780,
+            400,
+            100
+          ],
+          "g3": [
+            100,
+            1100,
+            800,
+            600
+          ]
+        }
+      },
+      "annotationEdits": {
+        "elementSemantics": {
+          "e0": "clock"
+        },
+        "groupSemantics": {
+          "g0": "日期时间区"
+        },
+        "sceneIntent": "示例场景意图，需真实审核后填写"
+      },
+      "notes": "格式模板，没有发生实际审批。禁止将此文件导入生产数据集。"
+    },
+    {
+      "id": "demo_s002",
+      "requestKey": "9b1503e82be2966f2dcc1965980c12504ce569d5d60b7ab82c1ef197c8b56258",
+      "baseRevision": 0,
+      "status": "approved",
+      "answer": {
+        "schema": "multires-layout/1",
+        "groups": {
+          "g0": [
+            100,
+            100,
+            400,
+            150
+          ],
+          "g1": [
+            600,
+            100,
+            300,
+            650
+          ],
+          "g2": [
+            100,
+            780,
+            400,
+            100
+          ],
+          "g3": [
+            100,
+            200,
+            800,
+            600
+          ]
+        }
+      },
+      "annotationEdits": {
+        "elementSemantics": {
+          "e0": "clock"
+        },
+        "groupSemantics": {
+          "g0": "日期时间区"
+        },
+        "sceneIntent": "示例场景意图，需真实审核后填写"
+      },
+      "notes": "格式模板，没有发生实际审批。禁止将此文件导入生产数据集。"
+    }
+  ]
+}

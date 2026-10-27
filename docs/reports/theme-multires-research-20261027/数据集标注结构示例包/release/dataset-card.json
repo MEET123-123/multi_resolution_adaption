@@ -1,0 +1,17 @@
+{
+  "schema": "theme-dataset-card/1",
+  "demo_only": true,
+  "intended_use": "理解文件结构、标注口径及布局输出协议",
+  "excluded_use": [
+    "真实训练",
+    "主题质量统计",
+    "人工或原生验证成绩"
+  ],
+  "actual_human_reviews": 0,
+  "actual_native_checks": 0,
+  "limitations": [
+    "所有图像为示意框图",
+    "无原始XML与主题素材",
+    "没有可用训练标签"
+  ]
+}

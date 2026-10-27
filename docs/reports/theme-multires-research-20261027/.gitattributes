@@ -1,0 +1,10 @@
+# Preserve generated binary artifacts under Windows autocrlf settings.
+*.pdf binary
+*.png binary
+
+# Markdown uses two trailing spaces for intentional hard line breaks.
+*.md text eol=lf whitespace=-blank-at-eol
+*.py text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.csv text eol=lf

@@ -1,0 +1,11 @@
+{
+  "schema": "theme-provenance/1",
+  "demo_only": true,
+  "source_sha256": "1b5e23aa2e65b537e6c0fc5122e8f44e5fca25fb8df49763741516590417b083",
+  "hash_scope": "synthetic fixture descriptor, not a source package",
+  "rights_status": "self-created schematic examples only",
+  "review_status": "not_reviewed",
+  "native_status": "not_tested",
+  "native_evidence": null,
+  "real_package_uri": null
+}

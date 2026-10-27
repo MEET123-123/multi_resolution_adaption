@@ -1,0 +1,28 @@
+{
+  "schema": "theme-relations/1",
+  "demo_only": true,
+  "sample_id": "demo_s001",
+  "evidence_level": "unverified_example",
+  "reviewer": null,
+  "groups": [
+    {
+      "id": "group_datetime",
+      "members": [
+        "node_clock",
+        "node_date"
+      ],
+      "policy": "rigid"
+    }
+  ],
+  "edges": [
+    {
+      "subject": "node_clock",
+      "predicate": "align_x",
+      "object": "node_date",
+      "space": "source_engine_logical",
+      "state": "home",
+      "origin": "synthetic example",
+      "evidence": null
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "theme-trajectory/1",
+  "demo_only": true,
+  "family_id": "demo_f001",
+  "trace_id": "demo_t001",
+  "initial": {
+    "state": "home",
+    "time_ms": 0,
+    "variables": {}
+  },
+  "steps": [
+    {
+      "event": {
+        "kind": "tap",
+        "target_node_id": "node_menu"
+      },
+      "expected": {
+        "state": "panel_open",
+        "panel_visible": true
+      },
+      "observed": null,
+      "native_evidence": null,
+      "evidence_level": "unverified_example"
+    }
+  ],
+  "unexplored": [
+    "关闭面板",
+    "切换样式后返回",
+    "横竖屏切换"
+  ]
+}

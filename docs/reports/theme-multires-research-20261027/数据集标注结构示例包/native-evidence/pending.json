@@ -1,0 +1,13 @@
+{
+  "demo_only": true,
+  "sample_ids": [
+    "demo_s001",
+    "demo_s002"
+  ],
+  "status": "not_tested",
+  "device": null,
+  "rom": null,
+  "tool_version": null,
+  "screenshots": [],
+  "conclusion": null
+}

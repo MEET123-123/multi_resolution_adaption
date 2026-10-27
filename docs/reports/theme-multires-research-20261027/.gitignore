@@ -1,0 +1,4 @@
+# Local report build and visual QA outputs.
+qa_summary.json
+qa/
+*.zip

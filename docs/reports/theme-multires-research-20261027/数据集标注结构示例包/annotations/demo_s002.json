@@ -1,0 +1,338 @@
+{
+  "schema": "multires-annotations/1",
+  "elementLevel": {
+    "origin": "synthetic example",
+    "elements": [
+      {
+        "id": "node_clock@0",
+        "source_node_id": "node_clock",
+        "component_identity": "component_node_clock",
+        "component": "component_node_clock",
+        "parent": "synthetic_root",
+        "tag": "Time",
+        "attributes": {},
+        "sourceBox": {
+          "x": 120,
+          "y": 240,
+          "w": 600,
+          "h": 200
+        },
+        "script_bbox": {
+          "x": 120,
+          "y": 240,
+          "w": 600,
+          "h": 200
+        },
+        "visible_bbox": null,
+        "visible_bbox_reason": "synthetic example; no measured visible bounds",
+        "alpha": 1.0,
+        "asset": null,
+        "image_path": null,
+        "image_path_reason": "schematic fixture; no theme assets",
+        "text": "",
+        "semantic": {
+          "label": "clock",
+          "origin": "synthetic example",
+          "confidence": null
+        },
+        "geometryOrigin": "synthetic example; not script execution or native measurement"
+      },
+      {
+        "id": "node_date@0",
+        "source_node_id": "node_date",
+        "component_identity": "component_node_date",
+        "component": "component_node_date",
+        "parent": "synthetic_root",
+        "tag": "Date",
+        "attributes": {},
+        "sourceBox": {
+          "x": 120,
+          "y": 450,
+          "w": 600,
+          "h": 80
+        },
+        "script_bbox": {
+          "x": 120,
+          "y": 450,
+          "w": 600,
+          "h": 80
+        },
+        "visible_bbox": null,
+        "visible_bbox_reason": "synthetic example; no measured visible bounds",
+        "alpha": 1.0,
+        "asset": null,
+        "image_path": null,
+        "image_path_reason": "schematic fixture; no theme assets",
+        "text": "",
+        "semantic": {
+          "label": "date",
+          "origin": "synthetic example",
+          "confidence": null
+        },
+        "geometryOrigin": "synthetic example; not script execution or native measurement"
+      },
+      {
+        "id": "node_hero@0",
+        "source_node_id": "node_hero",
+        "component_identity": "component_node_hero",
+        "component": "component_node_hero",
+        "parent": "synthetic_root",
+        "tag": "Image",
+        "attributes": {},
+        "sourceBox": {
+          "x": 160,
+          "y": 700,
+          "w": 760,
+          "h": 1100
+        },
+        "script_bbox": {
+          "x": 160,
+          "y": 700,
+          "w": 760,
+          "h": 1100
+        },
+        "visible_bbox": null,
+        "visible_bbox_reason": "synthetic example; no measured visible bounds",
+        "alpha": 1.0,
+        "asset": null,
+        "image_path": null,
+        "image_path_reason": "schematic fixture; no theme assets",
+        "text": "",
+        "semantic": {
+          "label": "hero",
+          "origin": "synthetic example",
+          "confidence": null
+        },
+        "geometryOrigin": "synthetic example; not script execution or native measurement"
+      },
+      {
+        "id": "node_menu@0",
+        "source_node_id": "node_menu",
+        "component_identity": "component_node_menu",
+        "component": "component_node_menu",
+        "parent": "synthetic_root",
+        "tag": "Button",
+        "attributes": {},
+        "sourceBox": {
+          "x": 100,
+          "y": 2110,
+          "w": 880,
+          "h": 160
+        },
+        "script_bbox": {
+          "x": 100,
+          "y": 2110,
+          "w": 880,
+          "h": 160
+        },
+        "visible_bbox": null,
+        "visible_bbox_reason": "synthetic example; no measured visible bounds",
+        "alpha": 1.0,
+        "asset": null,
+        "image_path": null,
+        "image_path_reason": "schematic fixture; no theme assets",
+        "text": "",
+        "semantic": {
+          "label": "control",
+          "origin": "synthetic example",
+          "confidence": null
+        },
+        "geometryOrigin": "synthetic example; not script execution or native measurement"
+      },
+      {
+        "id": "node_panel@0",
+        "source_node_id": "node_panel",
+        "component_identity": "component_node_panel",
+        "component": "component_node_panel",
+        "parent": "synthetic_root",
+        "tag": "Group",
+        "attributes": {},
+        "sourceBox": {
+          "x": 100,
+          "y": 600,
+          "w": 880,
+          "h": 1400
+        },
+        "script_bbox": {
+          "x": 100,
+          "y": 600,
+          "w": 880,
+          "h": 1400
+        },
+        "visible_bbox": null,
+        "visible_bbox_reason": "synthetic example; no measured visible bounds",
+        "alpha": 1.0,
+        "asset": null,
+        "image_path": null,
+        "image_path_reason": "schematic fixture; no theme assets",
+        "text": "",
+        "semantic": {
+          "label": "panel",
+          "origin": "synthetic example",
+          "confidence": null
+        },
+        "geometryOrigin": "synthetic example; not script execution or native measurement"
+      }
+    ]
+  },
+  "semanticLevel": {
+    "origin": "synthetic example",
+    "components": [
+      {
+        "id": "component_node_clock",
+        "component_identity": "component_node_clock",
+        "members": [
+          "node_clock@0"
+        ],
+        "semanticLabels": [
+          "clock"
+        ],
+        "groupRole": "clock",
+        "groupRoleOrigin": "synthetic example",
+        "sourceBounds": null
+      },
+      {
+        "id": "component_node_date",
+        "component_identity": "component_node_date",
+        "members": [
+          "node_date@0"
+        ],
+        "semanticLabels": [
+          "date"
+        ],
+        "groupRole": "date",
+        "groupRoleOrigin": "synthetic example",
+        "sourceBounds": null
+      },
+      {
+        "id": "component_node_hero",
+        "component_identity": "component_node_hero",
+        "members": [
+          "node_hero@0"
+        ],
+        "semanticLabels": [
+          "hero"
+        ],
+        "groupRole": "hero",
+        "groupRoleOrigin": "synthetic example",
+        "sourceBounds": null
+      },
+      {
+        "id": "component_node_menu",
+        "component_identity": "component_node_menu",
+        "members": [
+          "node_menu@0"
+        ],
+        "semanticLabels": [
+          "control"
+        ],
+        "groupRole": "control",
+        "groupRoleOrigin": "synthetic example",
+        "sourceBounds": null
+      },
+      {
+        "id": "component_node_panel",
+        "component_identity": "component_node_panel",
+        "members": [
+          "node_panel@0"
+        ],
+        "semanticLabels": [
+          "panel"
+        ],
+        "groupRole": "panel",
+        "groupRoleOrigin": "synthetic example",
+        "sourceBounds": null
+      }
+    ]
+  },
+  "compositionLevel": {
+    "origin": "synthetic example",
+    "groups": [
+      {
+        "id": "group_datetime",
+        "members": [
+          "component_node_clock",
+          "component_node_date"
+        ],
+        "container": {
+          "type": "rigid"
+        },
+        "anchor": {
+          "parent_point": "center"
+        },
+        "confidence": null,
+        "sourceBounds": {
+          "x": 120,
+          "y": 240,
+          "w": 600,
+          "h": 290
+        }
+      },
+      {
+        "id": "group_hero",
+        "members": [
+          "component_node_hero"
+        ],
+        "container": {
+          "type": "rigid"
+        },
+        "anchor": {
+          "parent_point": "center"
+        },
+        "confidence": null,
+        "sourceBounds": {
+          "x": 160,
+          "y": 700,
+          "w": 760,
+          "h": 1100
+        }
+      },
+      {
+        "id": "group_tools",
+        "members": [
+          "component_node_menu"
+        ],
+        "container": {
+          "type": "rigid"
+        },
+        "anchor": {
+          "parent_point": "center"
+        },
+        "confidence": null,
+        "sourceBounds": {
+          "x": 100,
+          "y": 2110,
+          "w": 880,
+          "h": 160
+        }
+      },
+      {
+        "id": "group_panel",
+        "members": [
+          "component_node_panel"
+        ],
+        "container": {
+          "type": "rigid"
+        },
+        "anchor": {
+          "parent_point": "center"
+        },
+        "confidence": null,
+        "sourceBounds": {
+          "x": 100,
+          "y": 600,
+          "w": 880,
+          "h": 1400
+        }
+      }
+    ],
+    "alignments": [],
+    "distributions": [],
+    "sceneKind": "full-reflow",
+    "interactionPath": [],
+    "stateControls": {},
+    "timeMs": 0,
+    "animationPolicy": "synthetic example; no executed timeline"
+  },
+  "unresolved": "All semantics and geometry are synthetic examples; no verification occurred."
+}

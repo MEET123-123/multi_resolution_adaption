@@ -1,0 +1,10 @@
+{
+  "schema": "annotation-example-pack/1",
+  "demo_only": true,
+  "training_eligible": false,
+  "version": "1.2",
+  "sample_count": 2,
+  "family_count": 1,
+  "warning": "虚构格式示例，无真实主题、脚本执行、人工审批或原生证据；不能作为生产库或训练集。",
+  "format_scope": "字段示例与现有布局答案协议；扩展关系/轨迹/provenance不属于当前CLI自动产物。"
+}
