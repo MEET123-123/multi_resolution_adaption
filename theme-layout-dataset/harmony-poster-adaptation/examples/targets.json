@@ -1,0 +1,40 @@
+{
+  "profiles": [
+    {
+      "id": "tablet-mock-16-10",
+      "device": "Generic tablet mock",
+      "formFactor": "tablet",
+      "displayState": "tablet-screen",
+      "resolutionPx": {
+        "width": 2560,
+        "height": 1600
+      },
+      "safeInsetsPx": null,
+      "source": null,
+      "mockResolution": true,
+      "note": "仅用于预览占位；替换为实际平板型号及锁屏画布尺寸。",
+      "baseOrientation": "landscape",
+      "orientations": [
+        "landscape"
+      ]
+    },
+    {
+      "id": "dual-fold-mock-inner",
+      "device": "Generic dual-fold mock",
+      "formFactor": "dual-fold",
+      "displayState": "unfolded-inner",
+      "resolutionPx": {
+        "width": 2160,
+        "height": 2400
+      },
+      "safeInsetsPx": null,
+      "source": null,
+      "mockResolution": true,
+      "note": "展开态宽度按源直板机画布宽度的两倍（2160 px）设置，高度保持一致；仅为模拟画布，非具体机型参数。",
+      "baseOrientation": "portrait",
+      "orientations": [
+        "portrait"
+      ]
+    }
+  ]
+}

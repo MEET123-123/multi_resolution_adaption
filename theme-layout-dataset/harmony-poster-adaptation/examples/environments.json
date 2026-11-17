@@ -1,0 +1,4 @@
+[
+  {"id": "early", "system": {"hour": 1, "hour24": 1, "minute": 5, "battery_level": 9}},
+  {"id": "late", "system": {"hour": 11, "hour24": 23, "minute": 58, "battery_level": 100}}
+]

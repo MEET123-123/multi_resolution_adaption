@@ -1,0 +1,12 @@
+{
+  "id": "source-inferred",
+  "resolutionPx": {
+    "width": 1080.0,
+    "height": 2340.0
+  },
+  "note": "screenWidth/screenHeight 优先；缺失高度使用锁屏预览比例；无预览则假定 1:2，需人工复核。",
+  "previewSize": [
+    1080,
+    2340
+  ]
+}
